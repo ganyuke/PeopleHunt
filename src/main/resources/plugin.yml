@@ -1,0 +1,10 @@
+name: PeopleHunt
+description: $description
+version: '${version}'
+
+main: io.github.ganyuke.peoplehunt.paper.PeopleHunt
+api-version: '26.1.2'
+load: POSTWORLD
+
+authors: [ ganyuke ]
+website: https://github.com/ganyuke/PeopleHunt
