@@ -11,4 +11,6 @@ object Utils {
         val s = seconds % 60
         return "%02d:%02d:%02d".format(h, m, s)
     }
+
+    const val PEOPLEHUNT_NAMESPACE = "peoplehunt"
 }

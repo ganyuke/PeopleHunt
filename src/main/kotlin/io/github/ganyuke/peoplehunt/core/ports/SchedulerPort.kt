@@ -5,6 +5,6 @@ interface TaskHandle {
 }
 
 interface SchedulerPort {
-    fun everyTicks(interval: Long, task: () -> Unit): TaskHandle
+    fun everyTicks(interval: Long, delay: Long = interval, task: () -> Unit): TaskHandle
     fun after(delay: Long, task: () -> Unit): TaskHandle
 }

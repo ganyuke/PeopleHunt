@@ -7,9 +7,9 @@ import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 
 class CompassService(private val outbound: MatchEventBus) {
-
     private var runnerUuid: Uuid? = null
     private var runnerDim: Uuid? = null
+    private var huntersUuid: Set<Uuid> = emptySet()
     private val runnerPosInDim: MutableMap<Uuid, Pos4> = mutableMapOf()
 
     fun onReportableEvent(event: ReportableEvent) {
@@ -22,16 +22,19 @@ class CompassService(private val outbound: MatchEventBus) {
     fun onMatchEvent(event: MatchEvent) {
         when (event) {
             is MatchEvent.MatchStart -> {
-                runnerUuid = event.runner
+                runnerUuid = event.runner.uuid
+                huntersUuid = event.hunters.map { it.uuid }.toSet()
                 runnerPosInDim.clear()
                 runnerDim = null
             }
+
             is MatchEvent.CompassTick -> tick()
             is MatchEvent.MatchEnd -> {
                 runnerUuid = null
                 runnerDim = null
                 runnerPosInDim.clear()
             }
+
             else -> {}
         }
     }
@@ -39,7 +42,6 @@ class CompassService(private val outbound: MatchEventBus) {
     private fun tick() {
         val dim = runnerDim ?: return
         val pos = runnerPosInDim[dim] ?: return
-        val runner = runnerUuid ?: return
-        outbound.post(MatchEvent.CompassUpdate(dim, pos, runner))
+        outbound.post(MatchEvent.CompassUpdate(pos, runnerPosInDim, huntersUuid))
     }
 }

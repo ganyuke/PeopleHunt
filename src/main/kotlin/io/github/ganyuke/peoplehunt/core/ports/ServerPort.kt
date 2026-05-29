@@ -5,10 +5,7 @@ import io.github.ganyuke.peoplehunt.core.Utils.Pos4
 
 data class PlayerSnapshot(
     val uuid: Uuid,
-    val dimension: String,
-    val x: Double,
-    val y: Double,
-    val z: Double,
+    val pos: Pos4
 )
 
 interface ServerPort {

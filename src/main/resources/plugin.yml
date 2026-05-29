@@ -8,3 +8,8 @@ load: POSTWORLD
 
 authors: [ ganyuke ]
 website: https://github.com/ganyuke/PeopleHunt
+
+permissions:
+  peoplehunt.frontman:
+    description: Gives control over manhunt management commands.
+    default: op
