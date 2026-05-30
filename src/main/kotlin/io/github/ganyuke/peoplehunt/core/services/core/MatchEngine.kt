@@ -1,8 +1,11 @@
-package io.github.ganyuke.peoplehunt.core.services
+package io.github.ganyuke.peoplehunt.core.services.core
 
 import io.github.ganyuke.peoplehunt.core.Utils
 import kotlin.uuid.Uuid
 import io.github.ganyuke.peoplehunt.core.Utils.formatElapsed
+import io.github.ganyuke.peoplehunt.core.Utils.isNotReally
+import io.github.ganyuke.peoplehunt.core.Utils.isReally
+import io.github.ganyuke.peoplehunt.core.Utils.reallyContains
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
@@ -108,7 +111,7 @@ class MatchEngine(
         MatchPhase.ACTIVE -> MatchResult.Err(FailureReason.ALREADY_STARTED)
         MatchPhase.IDLE, MatchPhase.FINISHED -> {
             if (hunters.isEmpty()) {
-                hunters = onlinePlayers.filter { it.uuid != runner?.uuid }.toSet()
+                hunters = onlinePlayers.filter { it isNotReally runner }.toSet()
             }
 
             val currentRunner = runner
@@ -127,14 +130,14 @@ class MatchEngine(
         when (matchPhase) {
             // start match when runner moves and match was primed
             MatchPhase.PRIMED -> {
-                if (event is ReportableEvent.PlayerMoved && event.player == checkNotNull(runner).uuid)
+                if (event is ReportableEvent.PlayerMoved && event.player isReally checkNotNull(runner))
                     startMatch()
             }
 
             MatchPhase.ACTIVE -> {
                 if (event is ReportableEvent.EntityDied) when {
-                    event.player == checkNotNull(runner) { "Runner must be set when match is active" }
-                        .uuid -> // match active with null runner should not happen
+                    event.player isReally checkNotNull(runner) { "Runner must be set when match is active" }
+                        -> // match active with null runner should not happen
                         endMatch(MatchOutcome.HUNTER_VICTORY)
 
                     event.entityIdentifier == "minecraft:ender_dragon" ->
@@ -152,7 +155,7 @@ class MatchEngine(
         MatchPhase.PRIMED, MatchPhase.IDLE, MatchPhase.FINISHED -> {
             if (this.runner != null) {
                 if (hunters.isEmpty()) {
-                    hunters = onlinePlayers.filter { it.uuid != runner?.uuid }.toSet()
+                    hunters = onlinePlayers.filter { it isNotReally runner }.toSet()
                 }
 
                 startMatch()
@@ -263,8 +266,8 @@ class MatchEngine(
     fun setRunner(player: MatchPlayer) = guardMutation {
         // success: overriding existing runner / no runner
         // failure: candidate already runner / hunter
-        if (this.runner == player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_ALREADY_RUNNER)
-        if (hunters.contains(player)) return@guardMutation MatchResult.Err(FailureReason.PLAYER_ALREADY_HUNTER)
+        if (this.runner isReally player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_ALREADY_RUNNER)
+        if (hunters reallyContains player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_ALREADY_HUNTER)
 
         this.runner = player
         MatchResult.Ok("Set ${player.name} as the runner")
@@ -273,7 +276,7 @@ class MatchEngine(
     fun removeRunner(player: MatchPlayer) = guardMutation {
         // success: removing current runner
         // failure: candidate not runner
-        if (this.runner != player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_NOT_IN_GROUP)
+        if (this.runner isNotReally player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_NOT_IN_GROUP)
 
         this.runner = null
         MatchResult.Ok("Removed ${player.name} as the runner")
@@ -288,7 +291,7 @@ class MatchEngine(
     fun addHunter(player: MatchPlayer) = guardMutation {
         // success: adding candidate hunter
         // failure: candidate already hunter
-        if (this.runner == player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_ALREADY_HUNTER)
+        if (this.runner isReally player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_ALREADY_HUNTER)
 
         this.hunters += player
         MatchResult.Ok("Added ${player.name} as a hunter")
@@ -297,7 +300,7 @@ class MatchEngine(
     fun removeHunter(player: MatchPlayer): MatchResult = guardMutation {
         // success: removing candidate hunter
         // failure: candidate not a hunter
-        if (!this.hunters.contains(player)) return@guardMutation MatchResult.Err(FailureReason.PLAYER_NOT_IN_GROUP)
+        if (!(this.hunters reallyContains player)) return@guardMutation MatchResult.Err(FailureReason.PLAYER_NOT_IN_GROUP)
 
         this.hunters -= player
         MatchResult.Ok("Removed ${player.name} as a hunter")

@@ -3,14 +3,18 @@ package io.github.ganyuke.peoplehunt.paper
 import org.bukkit.plugin.java.JavaPlugin
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
-import io.github.ganyuke.peoplehunt.core.services.CompassService
-import io.github.ganyuke.peoplehunt.core.services.MatchEngine
-import io.github.ganyuke.peoplehunt.core.services.ReportingEngine
+import io.github.ganyuke.peoplehunt.core.services.core.CompassService
+import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
+import io.github.ganyuke.peoplehunt.core.services.reporting.ReportingEngine
 import io.github.ganyuke.peoplehunt.paper.adapters.PaperCompassAdapter
+import io.github.ganyuke.peoplehunt.paper.adapters.PaperLoggerAdapter
 import io.github.ganyuke.peoplehunt.paper.adapters.PaperSchedulerAdapter
 import io.github.ganyuke.peoplehunt.paper.adapters.PaperServerAdapter
+import io.github.ganyuke.peoplehunt.paper.adapters.StructureLocatorAdapter
 import io.github.ganyuke.peoplehunt.paper.command.match.MatchCommand
-import io.github.ganyuke.peoplehunt.paper.listeners.PaperListener
+import io.github.ganyuke.peoplehunt.paper.listeners.CombatStatsListener
+import io.github.ganyuke.peoplehunt.paper.listeners.CoreListener
+import io.github.ganyuke.peoplehunt.paper.listeners.MilestoneListener
 import io.github.ganyuke.peoplehunt.paper.utils.ConfigLoader
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
 
@@ -25,25 +29,32 @@ class PeopleHunt : JavaPlugin() {
         val inbound = ReportableEventBus()
         val outbound = MatchEventBus()
 
-        val scheduler = PaperSchedulerAdapter(this)
+        val compassAdapter = PaperCompassAdapter(phConfig)
+        val schedulerAdapter = PaperSchedulerAdapter(this)
+        val structureLocatorAdapter = StructureLocatorAdapter()
+        val loggerAdapter = PaperLoggerAdapter(this)
 
-        matchEngine = MatchEngine(scheduler, outbound, phConfig)
-        val reportingEngine = ReportingEngine()
+        matchEngine = MatchEngine(schedulerAdapter, outbound, phConfig)
+        val reportingEngine = ReportingEngine(outbound, schedulerAdapter, structureLocatorAdapter, loggerAdapter)
 
-        val compass = CompassService(outbound)
-        val paperCompass = PaperCompassAdapter(phConfig)
-        val paperServer = PaperServerAdapter(reportingEngine)
+        val paperServerAdapter = PaperServerAdapter(reportingEngine)
+        
+        val compassService = CompassService(outbound)
 
         // register listeners on bus that match and compass react to
         inbound.register(matchEngine::onEvent)
-        inbound.register(compass::onReportableEvent)
+        inbound.register(compassService::onReportableEvent)
+        inbound.register(reportingEngine::onReportableEvent)
 
         // register listeners on bus that game must react to
-        outbound.register(compass::onMatchEvent)
-        outbound.register(paperCompass::onMatchEvent)
-        outbound.register(paperServer::onMatchEvent)
+        outbound.register(compassService::onMatchEvent)
+        outbound.register(compassAdapter::onMatchEvent)
+        outbound.register(paperServerAdapter::onMatchEvent)
+        outbound.register(reportingEngine::onMatchEvent)
 
-        server.pluginManager.registerEvents(PaperListener(inbound), this)
+        server.pluginManager.registerEvents(CoreListener(inbound), this)
+        server.pluginManager.registerEvents(MilestoneListener(inbound), this)
+        server.pluginManager.registerEvents(CombatStatsListener(inbound), this)
 
         val manager = this.lifecycleManager
 

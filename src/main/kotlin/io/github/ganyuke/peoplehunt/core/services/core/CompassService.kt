@@ -1,4 +1,4 @@
-package io.github.ganyuke.peoplehunt.core.services
+package io.github.ganyuke.peoplehunt.core.services.core
 
 import kotlin.uuid.Uuid
 import io.github.ganyuke.peoplehunt.core.Utils.Pos4
@@ -16,7 +16,7 @@ class CompassService(private val outbound: MatchEventBus) {
         when (event) {
             // feature: update tracked position on runner movement in dimension
             is ReportableEvent.PlayerMoved -> {
-                if (event.player != runnerUuid) return
+                if (event.player.uuid != runnerUuid) return
 
                 runnerDim = event.pos.w
                 runnerPosInDim[event.pos.w] = event.pos
@@ -24,8 +24,8 @@ class CompassService(private val outbound: MatchEventBus) {
 
             // feature: give compass on hunter respawn
             is ReportableEvent.PlayerRespawned -> {
-                if (event.player !in huntersUuid) return
-                outbound.post(MatchEvent.GiveHuntersCompass(setOf(event.player)))
+                if (event.player.uuid !in huntersUuid) return
+                outbound.post(MatchEvent.GiveHuntersCompass(setOf(event.player.uuid)))
             }
 
             else -> {}

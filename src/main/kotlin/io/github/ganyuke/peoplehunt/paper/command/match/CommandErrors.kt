@@ -1,7 +1,7 @@
 package io.github.ganyuke.peoplehunt.paper.command.match
 
-import io.github.ganyuke.peoplehunt.core.services.MatchEngine
-import io.github.ganyuke.peoplehunt.core.services.MatchEngine.FailureReason
+import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
+import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.FailureReason
 import io.papermc.paper.command.brigadier.CommandSourceStack
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor

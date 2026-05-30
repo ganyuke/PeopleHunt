@@ -8,20 +8,19 @@ import org.bukkit.event.entity.EntityDeathEvent
 import org.bukkit.event.player.PlayerMoveEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
+import io.github.ganyuke.peoplehunt.paper.utils.Utils.toMatchPlayer
 import io.github.ganyuke.peoplehunt.paper.utils.Utils.toPos4
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.player.PlayerRespawnEvent
-import kotlin.uuid.toKotlinUuid
 
-class PaperListener(private val inbound: ReportableEventBus) : Listener {
-
+class CoreListener(private val inbound: ReportableEventBus) : Listener {
     @EventHandler
     fun onMove(event: PlayerMoveEvent) {
         if (!event.hasChangedBlock()) return
         val p = event.player
         inbound.post(
             ReportableEvent.PlayerMoved(
-                p.uniqueId.toKotlinUuid(),
+                p.toMatchPlayer(),
                 p.location.toPos4()
             )
         )
@@ -36,10 +35,10 @@ class PaperListener(private val inbound: ReportableEventBus) : Listener {
 
         inbound.post(
             ReportableEvent.EntityDied(
-                player = (event.entity as? Player)?.uniqueId?.toKotlinUuid(),
+                player = (event.entity as? Player)?.toMatchPlayer(),
                 entityIdentifier = event.entityType.key.toString(),
                 pos = event.entity.location.toPos4(),
-                playerKiller = (killer as? Player)?.uniqueId?.toKotlinUuid(),
+                playerKiller = (killer as? Player)?.toMatchPlayer(),
                 entityKiller = killer?.takeIf { it !is Player }?.type?.key?.toString(),
             )
         )
@@ -51,7 +50,7 @@ class PaperListener(private val inbound: ReportableEventBus) : Listener {
 
         inbound.post(
             ReportableEvent.PlayerRespawned(
-                player = player.uniqueId.toKotlinUuid(),
+                player = player.toMatchPlayer(),
                 pos = player.location.toPos4()
             )
         )

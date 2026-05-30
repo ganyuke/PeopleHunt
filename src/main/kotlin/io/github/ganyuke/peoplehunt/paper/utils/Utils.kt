@@ -1,7 +1,7 @@
 package io.github.ganyuke.peoplehunt.paper.utils
 
 import io.github.ganyuke.peoplehunt.core.Utils
-import io.github.ganyuke.peoplehunt.core.services.MatchEngine
+import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player

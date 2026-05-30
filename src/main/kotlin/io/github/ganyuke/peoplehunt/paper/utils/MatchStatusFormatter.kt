@@ -1,7 +1,7 @@
 package io.github.ganyuke.peoplehunt.paper.utils
 
-import io.github.ganyuke.peoplehunt.core.services.MatchEngine
-import io.github.ganyuke.peoplehunt.core.services.ReportingEngine
+import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
+import io.github.ganyuke.peoplehunt.core.services.reporting.ReportingEngine
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.minimessage.MiniMessage
 import java.time.ZoneId

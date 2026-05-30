@@ -2,9 +2,9 @@ package io.github.ganyuke.peoplehunt.paper.command.match
 
 import com.mojang.brigadier.tree.LiteralCommandNode
 import io.github.ganyuke.peoplehunt.core.Utils.PEOPLEHUNT_NAMESPACE
-import io.github.ganyuke.peoplehunt.core.services.MatchEngine
-import io.github.ganyuke.peoplehunt.core.services.MatchEngine.MatchStatus
-import io.github.ganyuke.peoplehunt.core.services.ReportingEngine
+import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
+import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.MatchStatus
+import io.github.ganyuke.peoplehunt.core.services.reporting.ReportingEngine
 import io.github.ganyuke.peoplehunt.paper.items.HunterCompass
 import io.github.ganyuke.peoplehunt.paper.utils.MatchStatusFormatter
 import io.github.ganyuke.peoplehunt.paper.utils.Utils.toMatchPlayer

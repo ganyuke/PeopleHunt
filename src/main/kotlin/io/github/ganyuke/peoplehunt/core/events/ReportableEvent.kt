@@ -1,16 +1,38 @@
 package io.github.ganyuke.peoplehunt.core.events
 
-import kotlin.uuid.Uuid
 import io.github.ganyuke.peoplehunt.core.Utils.Pos4
+import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.MatchPlayer
+import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 
 sealed class ReportableEvent {
-    data class PlayerMoved(val player: Uuid, val pos: Pos4) : ReportableEvent()
-    data class PlayerRespawned(val player: Uuid, val pos: Pos4) : ReportableEvent()
+    // core events for manhunt gameplay
+    data class PlayerMoved(val player: MatchPlayer, val pos: Pos4) : ReportableEvent()
+    data class PlayerRespawned(val player: MatchPlayer, val pos: Pos4) : ReportableEvent()
     data class EntityDied(
-        val player: Uuid?,
+        val player: MatchPlayer?,
         val entityIdentifier: String,
         val pos: Pos4,
-        val playerKiller: Uuid?,
+        val playerKiller: MatchPlayer?,
         val entityKiller: String?,
     ) : ReportableEvent()
+
+    // combat stats
+    data class PlayerDamagedEntity(val player: MatchPlayer, val amount: Double) : ReportableEvent()
+    data class PlayerDamagedByEntity(val player: MatchPlayer, val amount: Double) : ReportableEvent()
+
+    // item milestones
+    data class PlayerAcquiredItem(
+        val player: MatchPlayer,
+        val item: SpeedrunMilestone.ItemAcquired.Item,
+        val method: SpeedrunMilestone.AcquisitionMethod,
+    ) : ReportableEvent()
+
+    // world milestones
+    data class PlayerChangedDimension(val player: MatchPlayer, val from: String, val to: String) : ReportableEvent()
+//    data class PlayerEnteredStructure(val player: MatchPlayer, val structure: String) : ReportableEvent()
+    data class PlayerThrewItem(val player: MatchPlayer, val item: String) : ReportableEvent()
+    data class PlayerFilledBucket(val player: MatchPlayer, val fluid: String) : ReportableEvent()
+    data class EndCrystalDestroyed(val player: MatchPlayer?) : ReportableEvent()
+//    data class DragonHealthChanged(val percentage: Int) : ReportableEvent()
+    data class EndPortalCompleted(val player: MatchPlayer) : ReportableEvent()
 }

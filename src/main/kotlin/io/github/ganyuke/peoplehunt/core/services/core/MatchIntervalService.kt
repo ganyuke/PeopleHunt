@@ -1,4 +1,4 @@
-package io.github.ganyuke.peoplehunt.core.services
+package io.github.ganyuke.peoplehunt.core.services.core
 
 import io.github.ganyuke.peoplehunt.core.Utils
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent

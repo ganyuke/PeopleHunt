@@ -2,7 +2,7 @@ package io.github.ganyuke.peoplehunt.core.events
 
 import kotlin.uuid.Uuid
 import io.github.ganyuke.peoplehunt.core.Utils.Pos4
-import io.github.ganyuke.peoplehunt.core.services.MatchEngine
+import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 
 sealed class MatchEvent {
     data class MatchStart(val runner: MatchEngine.MatchPlayer, val hunters: Set<MatchEngine.MatchPlayer>) : MatchEvent()
