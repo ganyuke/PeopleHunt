@@ -8,7 +8,6 @@ import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.ports.LoggerPort
 import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
-import io.github.ganyuke.peoplehunt.core.services.reporting.CombatStatsTracker
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.MilestoneTracker
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 import io.github.ganyuke.peoplehunt.core.ports.StructureLocatorPort
@@ -28,10 +27,13 @@ class ReportingEngine(
 
     private val nameResolver = HashMap<Uuid, String>()
 
-    val participantStats get() = combatStatsTracker.participantStats.map { pair -> MatchEngine.MatchPlayer(
-        pair.first,
-        nameResolver[pair.first] ?: "unknown"
-    ) to pair.second }
+    val participantStats
+        get() = combatStatsTracker.participantStats.map { pair ->
+            MatchEngine.MatchPlayer(
+                pair.first,
+                nameResolver[pair.first] ?: "unknown"
+            ) to pair.second
+        }
 
     // will be called by async SQL thread so need to run this on the main thread
     // everything else in this engine runs on the main Bukkit thread
@@ -45,23 +47,153 @@ class ReportingEngine(
     fun onReportableEvent(event: ReportableEvent) {
         when (event) {
             is ReportableEvent.EntityDied -> handleEntityDied(event)
+            is ReportableEvent.PlayerDamagedEntity -> handleDamageDealt(event)
+            is ReportableEvent.PlayerDamagedByEntity -> handleDamageReceived(event)
+            else -> {}
+        }
+
+        processMilestoneTracking(event)
+    }
+
+    private fun handleDamageDealt(event: ReportableEvent.PlayerDamagedEntity) {
+        if (event.player isReally currentRunner || currentHunters reallyContains event.player) {
+            nameResolver[event.player.uuid] = event.player.name
+            combatStatsTracker.recordDamageDealt(event.player.uuid, event.amount)
+        }
+    }
+
+    private fun handleDamageReceived(event: ReportableEvent.PlayerDamagedByEntity) {
+        if (event.player isReally currentRunner || currentHunters reallyContains event.player) {
+            nameResolver[event.player.uuid] = event.player.name
+            combatStatsTracker.recordDamageTaken(event.player.uuid, event.amount)
+        }
+    }
+
+    private fun processMilestoneTracking(event: ReportableEvent) {
+        val runner = currentRunner ?: return
+
+        val milestone: SpeedrunMilestone? = when (event) {
+            // reporting milestone feat: runner enters a key structure for progression
+            // i.e. the fortress (for blaze rods), bastion (for piglin bartering for pearls)
+            // and of course the stronghold to get to the End in the first place
             is ReportableEvent.PlayerMoved -> {
-                if (event.player isReally currentRunner) {
+                if (event.player isReally runner) {
                     val structureIdentifier = structureLocator.getStructureAt(event.pos)
-                    logger.info(structureIdentifier.toString())
-                    val newlyUnlocked = when (structureIdentifier) {
-                        "minecraft:fortress" -> milestoneTracker.trackMilestone(SpeedrunMilestone.EnteredFortress)
-                        "minecraft:bastion_remnant" -> milestoneTracker.trackMilestone(SpeedrunMilestone.EnteredBastion)
-                        "minecraft:stronghold" -> milestoneTracker.trackMilestone(SpeedrunMilestone.EnteredStronghold)
-                        else -> false
+                    when (structureIdentifier) {
+                        "minecraft:fortress" -> SpeedrunMilestone.EnteredFortress
+                        "minecraft:bastion_remnant" -> SpeedrunMilestone.EnteredBastion
+                        "minecraft:stronghold" -> SpeedrunMilestone.EnteredStronghold
+                        else -> null
                     }
-                    if (newlyUnlocked) {
-                        logger.info("Milestone Unlocked: Runner (${currentRunner?.name}) entered structure: $structureIdentifier")
+                } else null
+            }
+
+            // reporting milestone feat: runner picks up important item toward progression
+            // i.e. iron ingot, bucket (for speedrunner:tm: portal), blaze rod, eye of ender
+            is ReportableEvent.PlayerAcquiredItem -> {
+                if (event.player isReally runner) {
+                    SpeedrunMilestone.ItemAcquired(event.item, event.method)
+                } else null
+            }
+
+            // reporting milestone feat: water & lava buckets to indicate
+            // progress toward building Nether Portal the speedrunner:tm: way
+            is ReportableEvent.PlayerFilledBucket -> {
+                if (event.player isReally runner) {
+                    when (event.fluid) {
+                        "minecraft:water" -> SpeedrunMilestone.PickedUpWater
+                        "minecraft:lava" -> SpeedrunMilestone.PickedUpLava
+                        else -> null
                     }
+                } else null
+            }
+
+            // reporting milestone feat: first entered nether/end & exited nether
+            // nether exit requires blaze rods to avoid counting when the runner
+            // walks back into the overworld immediately after entered the nether
+            is ReportableEvent.PlayerChangedDimension -> {
+                if (event.player isReally runner) {
+                    when {
+                        event.from == "minecraft:overworld" && event.to == "minecraft:the_nether" -> SpeedrunMilestone.EnteredNether
+                        event.from == "minecraft:the_nether" && event.to == "minecraft:overworld" && milestoneTracker.hasMilestone(
+                            SpeedrunMilestone.ItemAcquired(
+                                SpeedrunMilestone.ItemAcquired.Item.BLAZE_ROD,
+                                SpeedrunMilestone.AcquisitionMethod.PICKED_UP
+                            )
+                        ) -> SpeedrunMilestone.LeftNether
+
+                        event.to == "minecraft:the_end" -> SpeedrunMilestone.EnteredEnd
+                        else -> null
+                    }
+                } else null
+            }
+
+            // reporting milestone feat: first eye of ender thrown
+            // to track when runner has started moving toward the stronghold
+            is ReportableEvent.PlayerThrewEnderEye -> {
+                if (event.player isReally runner) {
+                    SpeedrunMilestone.ThrewEyeOfEnder
+                } else null
+            }
+
+            // reporting milestone feat: end portal creation event
+            // probably could just get rid of this in favor of the enter End
+            // but some people like to taunt the hunters
+            // also this doesn't guard if it's the runner who created the portal
+            // but like, a portal is a portal, and if the hunters created the portal,
+            // good on them i guess?
+            is ReportableEvent.EndPortalCompleted -> {
+                SpeedrunMilestone.CompletedEndPortal
+            }
+
+            // reporting milestone feat: end crystal destruction progress
+            is ReportableEvent.EndCrystalDestroyed -> {
+                // regardless of whether a runner blew up the crystal, track crystal death
+                if (!milestoneTracker.hasMilestone(SpeedrunMilestone.DestroyedFirstEndCrystal)) {
+                    SpeedrunMilestone.DestroyedFirstEndCrystal
+                } else {
+                    SpeedrunMilestone.DestroyedAllEndCrystals
                 }
             }
 
-            else -> {}
+            // reporting milestone feat: ender dragon death attribution
+            is ReportableEvent.EntityDied -> {
+                if (event.entityIdentifier == "minecraft:ender_dragon") {
+                    if (event.playerKiller isReally runner) {
+                        SpeedrunMilestone.DragonSlain.ByRunner
+                    } else {
+                        SpeedrunMilestone.DragonSlain.ByOther(
+                            event.playerKiller?.name ?: event.entityKiller ?: "environment"
+                        )
+                    }
+                } else null
+            }
+
+            // reporting milestone feat: ender dragon health percentages
+            is ReportableEvent.PlayerDamagedEntity -> {
+                if (event.player isReally runner && event.entityIdentifier == "minecraft:ender_dragon" && event.remainingHealth != null) {
+                    // Ender Dragon standard max health is 200.0
+                    val maxHealth = 200.0
+                    val healthPercentage = (event.remainingHealth / maxHealth) * 100.0
+
+                    when {
+                        healthPercentage <= 5.0 -> SpeedrunMilestone.DragonAt5Percent
+                        healthPercentage <= 10.0 -> SpeedrunMilestone.DragonAt10Percent
+                        healthPercentage <= 25.0 -> SpeedrunMilestone.DragonAt25Percent
+                        healthPercentage <= 50.0 -> SpeedrunMilestone.DragonAt50Percent
+                        else -> null
+                    }
+                } else null
+            }
+
+            else -> null
+        }
+
+        if (milestone != null) {
+            val newlyUnlocked = milestoneTracker.trackMilestone(milestone)
+            if (newlyUnlocked) {
+                logger.info("Milestone Unlocked: Runner (${runner.name}) achieved: $milestone")
+            }
         }
     }
 

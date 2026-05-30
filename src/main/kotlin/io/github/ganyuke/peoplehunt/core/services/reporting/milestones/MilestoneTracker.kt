@@ -19,6 +19,11 @@ class MilestoneTracker {
         return true
     }
 
+    fun hasMilestone(milestone: SpeedrunMilestone): Boolean {
+        val key = milestone.dedupKey
+        return milestones.containsKey(key)
+    }
+
     fun clear() {
         milestones.clear()
     }

@@ -17,7 +17,12 @@ sealed class ReportableEvent {
     ) : ReportableEvent()
 
     // combat stats
-    data class PlayerDamagedEntity(val player: MatchPlayer, val amount: Double) : ReportableEvent()
+    data class PlayerDamagedEntity(
+        val player: MatchPlayer,
+        val entityIdentifier: String,
+        val amount: Double,
+        val remainingHealth: Double? = null
+    ) : ReportableEvent()
     data class PlayerDamagedByEntity(val player: MatchPlayer, val amount: Double) : ReportableEvent()
 
     // item milestones
@@ -29,10 +34,9 @@ sealed class ReportableEvent {
 
     // world milestones
     data class PlayerChangedDimension(val player: MatchPlayer, val from: String, val to: String) : ReportableEvent()
-//    data class PlayerEnteredStructure(val player: MatchPlayer, val structure: String) : ReportableEvent()
     data class PlayerThrewItem(val player: MatchPlayer, val item: String) : ReportableEvent()
+    data class PlayerThrewEnderEye(val player: MatchPlayer) : ReportableEvent()
     data class PlayerFilledBucket(val player: MatchPlayer, val fluid: String) : ReportableEvent()
     data class EndCrystalDestroyed(val player: MatchPlayer?) : ReportableEvent()
-//    data class DragonHealthChanged(val percentage: Int) : ReportableEvent()
-    data class EndPortalCompleted(val player: MatchPlayer) : ReportableEvent()
+    data class EndPortalCompleted(val pos: Pos4) : ReportableEvent()
 }

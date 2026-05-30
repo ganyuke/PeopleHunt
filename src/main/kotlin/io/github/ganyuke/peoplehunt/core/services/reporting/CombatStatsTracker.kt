@@ -6,15 +6,15 @@ class CombatStatsTracker {
     data class PlayerStats(
         var kills: Long = 0,
         var deaths: Long = 0,
-        var damageDealt: Long = 0,
-        var damageTaken: Long = 0
+        var damageDealt: Double = 0.0,
+        var damageTaken: Double = 0.0
     )
 
     private data class MutablePlayerStats(
         var kills: Long = 0,
         var deaths: Long = 0,
-        var damageDealt: Long = 0,
-        var damageTaken: Long = 0,
+        var damageDealt: Double = 0.0,
+        var damageTaken: Double = 0.0,
     ) {
         fun toImmutable() = PlayerStats(kills, deaths, damageDealt, damageTaken)
     }
@@ -35,11 +35,11 @@ class CombatStatsTracker {
         statsFor(playerId).deaths++
     }
 
-    fun recordDamageDealt(playerId: Uuid, amount: Long) {
+    fun recordDamageDealt(playerId: Uuid, amount: Double) {
         statsFor(playerId).damageDealt += amount
     }
 
-    fun recordDamageTaken(playerId: Uuid, amount: Long) {
+    fun recordDamageTaken(playerId: Uuid, amount: Double) {
         statsFor(playerId).damageTaken += amount
     }
 

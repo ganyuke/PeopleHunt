@@ -14,6 +14,7 @@ import io.github.ganyuke.peoplehunt.paper.adapters.StructureLocatorAdapter
 import io.github.ganyuke.peoplehunt.paper.command.match.MatchCommand
 import io.github.ganyuke.peoplehunt.paper.listeners.CombatStatsListener
 import io.github.ganyuke.peoplehunt.paper.listeners.CoreListener
+import io.github.ganyuke.peoplehunt.paper.listeners.EndPortalListener
 import io.github.ganyuke.peoplehunt.paper.listeners.MilestoneListener
 import io.github.ganyuke.peoplehunt.paper.utils.ConfigLoader
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
@@ -55,6 +56,7 @@ class PeopleHunt : JavaPlugin() {
         server.pluginManager.registerEvents(CoreListener(inbound), this)
         server.pluginManager.registerEvents(MilestoneListener(inbound), this)
         server.pluginManager.registerEvents(CombatStatsListener(inbound), this)
+        server.pluginManager.registerEvents(EndPortalListener(inbound), this)
 
         val manager = this.lifecycleManager
 
