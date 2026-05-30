@@ -122,22 +122,6 @@ class MilestoneListener(private val inbound: ReportableEventBus) : Listener {
         }
     }
 
-    // maybe save this for projectile tracking. ender_eye doesn't trigger this
-    /*    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-        fun onThrow(event: ProjectileLaunchEvent) {
-            val player = event.entity.shooter as? Player ?: return
-
-            // Find out what kind of tracking string to emit based on the entity type
-            val itemKey = entityTypeRegistry.getKey(event.entity.type)?.toString() ?: return // e.g., "minecraft:ender_pearl"
-
-            inbound.post(
-                ReportableEvent.PlayerThrewItem(
-                    player = player.toMatchPlayer(),
-                    item = itemKey
-                )
-            )
-        }*/
-
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onBucketFill(event: PlayerBucketFillEvent) {
         val fluidString = when (val material = event.blockClicked.type) {
@@ -164,14 +148,5 @@ class MilestoneListener(private val inbound: ReportableEventBus) : Listener {
                 player = killer?.toMatchPlayer()
             )
         )
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onEndPortalCreate(event: BlockFormEvent) {
-        if (event.newState.type == Material.END_PORTAL) {
-            inbound.post(
-                ReportableEvent.EndPortalCompleted(event.block.location.toPos4())
-            )
-        }
     }
 }
