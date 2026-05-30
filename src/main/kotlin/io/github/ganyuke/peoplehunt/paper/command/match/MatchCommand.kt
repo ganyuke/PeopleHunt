@@ -3,7 +3,7 @@ package io.github.ganyuke.peoplehunt.paper.command.match
 import com.mojang.brigadier.tree.LiteralCommandNode
 import io.github.ganyuke.peoplehunt.core.Utils.PEOPLEHUNT_NAMESPACE
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.MatchStatus
+import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.MatchState
 import io.github.ganyuke.peoplehunt.core.services.reporting.ReportingEngine
 import io.github.ganyuke.peoplehunt.paper.items.HunterCompass
 import io.github.ganyuke.peoplehunt.paper.utils.MatchStatusFormatter
@@ -28,14 +28,14 @@ object MatchCommand {
 
     fun handleLastStatus(source: CommandSourceStack, matchEngine: MatchEngine, reportingEngine: ReportingEngine): Int {
         val lastResult = matchEngine.lastMatchResult ?: return CommandErrors.fail(source, CommandErrors.CommandFailure.NoLastMatch)
-        val stats = reportingEngine.getParticipantStats()
+        val stats = reportingEngine.participantStats
         source.sender.sendMessage(MatchStatusFormatter.format(lastResult, stats))
         return 1
     }
 
     fun handleStatus(source: CommandSourceStack, matchEngine: MatchEngine, reportingEngine: ReportingEngine): Int {
         val status = matchEngine.currentStatus
-        val stats = if (status is MatchStatus.Finished) reportingEngine.getParticipantStats() else null
+        val stats = if (status is MatchState.Finished) reportingEngine.participantStats else null
         source.sender.sendMessage(MatchStatusFormatter.format(matchEngine.currentStatus, stats))
         return 1
     }

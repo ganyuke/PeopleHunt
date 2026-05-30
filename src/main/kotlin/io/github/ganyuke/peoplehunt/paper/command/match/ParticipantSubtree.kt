@@ -19,7 +19,7 @@ object ParticipantSubtree {
             override fun clear(engine: MatchEngine): MatchEngine.MatchResult = engine.clearRunner()
 
             override fun getCandidates(engine: MatchEngine): Collection<MatchPlayer> =
-                listOfNotNull(engine.runner)
+                listOfNotNull(engine.currentStatus.runner)
 
             override fun remove(engine: MatchEngine, player: MatchPlayer): MatchEngine.MatchResult =
                 engine.removeRunner(player)
@@ -47,11 +47,11 @@ object ParticipantSubtree {
                             return@executes CommandErrors.fail(ctx.source, CommandErrors.CommandFailure.TooManyRunners)
                         }
 
-                        targets.first().uniqueId.toKotlinUuid() in engine.hunters.map { it.uuid } -> {
+                        targets.first().uniqueId.toKotlinUuid() in engine.currentStatus.hunters.map { it.uuid } -> {
                             return@executes CommandErrors.fail(ctx.source, FailureReason.PLAYER_ALREADY_HUNTER)
                         }
 
-                        targets.first().uniqueId.toKotlinUuid() == engine.runner?.uuid -> {
+                        targets.first().uniqueId.toKotlinUuid() == engine.currentStatus.runner?.uuid -> {
                             return@executes CommandErrors.fail(ctx.source, FailureReason.PLAYER_ALREADY_RUNNER)
                         }
                     }
@@ -63,7 +63,7 @@ object ParticipantSubtree {
             override fun clear(engine: MatchEngine): MatchEngine.MatchResult = engine.clearHunters()
 
             override fun getCandidates(engine: MatchEngine): Collection<MatchPlayer> =
-                engine.hunters
+                engine.currentStatus.hunters
 
             override fun remove(engine: MatchEngine, player: MatchPlayer): MatchEngine.MatchResult =
                 engine.removeHunter(player)
@@ -76,7 +76,7 @@ object ParticipantSubtree {
                     .executes { ctx ->
                         val resolver = ctx.getArgument("player", PlayerSelectorArgumentResolver::class.java)
                         val targets = resolver.resolve(ctx.source)
-                        val currentRunner = engine.runner
+                        val currentRunner = engine.currentStatus.runner
 
                         // don't let players add the runner as a hunter specifically
                         if (targets.singleOrNull()?.uniqueId?.toKotlinUuid() == currentRunner?.uuid) {
@@ -84,7 +84,7 @@ object ParticipantSubtree {
                         }
 
                         // error out on adding an existing hunter
-                        if (targets.singleOrNull()?.uniqueId?.toKotlinUuid() in engine.hunters.map { it.uuid }) {
+                        if (targets.singleOrNull()?.uniqueId?.toKotlinUuid() in engine.currentStatus.hunters.map { it.uuid }) {
                             return@executes CommandErrors.fail(ctx.source, FailureReason.PLAYER_ALREADY_HUNTER)
                         }
 

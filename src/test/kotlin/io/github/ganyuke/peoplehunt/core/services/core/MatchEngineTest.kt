@@ -31,9 +31,9 @@ class MatchEngineTest {
         match.setRunner(runner)
         match.addHunter(hunter)
         val status = match.currentStatus
-        assertIs<MatchEngine.MatchStatus.Idle>(status)
+        assertIs<MatchEngine.MatchState.Idle>(status)
         assertEquals(runner, status.runner)
-        assertEquals(listOf(hunter), status.hunters)
+        assertEquals(setOf(hunter), status.hunters)
     }
 
     @Test
@@ -51,8 +51,8 @@ class MatchEngineTest {
         val hunter = player("hunter")
         match.setRunner(runner)
         match.prime(listOf(runner, hunter))
-        assertEquals(setOf(hunter), match.hunters)
-        assertIs<MatchEngine.MatchStatus.Primed>(match.currentStatus)
+        assertEquals(setOf(hunter), match.currentStatus.hunters)
+        assertIs<MatchEngine.MatchState.Primed>(match.currentStatus)
     }
 
     @Test
@@ -76,7 +76,7 @@ class MatchEngineTest {
 
         fixture.engine.onEvent(ReportableEvent.PlayerMoved(runner, pos()))
 
-        assertIs<MatchEngine.MatchStatus.Active>(fixture.engine.currentStatus)
+        assertIs<MatchEngine.MatchState.Active>(fixture.engine.currentStatus)
         assertTrue(events.any { it is MatchEvent.MatchStart })
         assertTrue(events.any { it is MatchEvent.GiveHuntersCompass })
         assertTrue(fixture.scheduler.everyTickTasks.isNotEmpty())
@@ -117,7 +117,7 @@ class MatchEngineTest {
         match.prime(emptyList())
         val result = match.forceEnd()
         assertIs<MatchEngine.MatchResult.Ok>(result)
-        assertIs<MatchEngine.MatchStatus.Idle>(match.currentStatus)
+        assertIs<MatchEngine.MatchState.Idle>(match.currentStatus)
     }
 
     @Test
@@ -129,7 +129,7 @@ class MatchEngineTest {
         fixture.engine.forceStart(emptyList())
         val result = fixture.engine.forceEnd()
         assertIs<MatchEngine.MatchResult.Ok>(result)
-        assertIs<MatchEngine.MatchStatus.Finished>(fixture.engine.currentStatus)
+        assertIs<MatchEngine.MatchState.Finished>(fixture.engine.currentStatus)
         fixture.scheduler.runAllAfterTasks()
         assertTrue(events.any { it is MatchEvent.MatchEnd })
     }
@@ -157,7 +157,7 @@ class MatchEngineTest {
                 entityKiller = null,
             ),
         )
-        val finished = fixture.engine.currentStatus as MatchEngine.MatchStatus.Finished
+        val finished = fixture.engine.currentStatus as MatchEngine.MatchState.Finished
         assertEquals(MatchEngine.MatchOutcome.HUNTER_VICTORY, finished.outcome)
         fixture.scheduler.runAllAfterTasks()
     }
@@ -177,7 +177,7 @@ class MatchEngineTest {
                 entityKiller = null,
             ),
         )
-        val finished = match.currentStatus as MatchEngine.MatchStatus.Finished
+        val finished = match.currentStatus as MatchEngine.MatchState.Finished
         assertEquals(MatchEngine.MatchOutcome.RUNNER_VICTORY, finished.outcome)
     }
 
@@ -198,7 +198,7 @@ class MatchEngineTest {
         val runner = player("runner")
         match.setRunner(runner)
         assertIs<MatchEngine.MatchResult.Ok>(match.removeRunner(runner))
-        assertEquals(null, match.runner)
+        assertEquals(null, match.currentStatus.runner)
         assertEquals(MatchEngine.FailureReason.PLAYER_NOT_IN_GROUP, (match.removeRunner(runner) as MatchEngine.MatchResult.Err).reason)
     }
 
@@ -207,7 +207,7 @@ class MatchEngineTest {
         val match = matchEngineFixture().engine
         match.setRunner(player("runner"))
         assertIs<MatchEngine.MatchResult.Ok>(match.clearRunner())
-        assertEquals(null, match.runner)
+        assertEquals(null, match.currentStatus.runner)
     }
 
     @Test
@@ -222,7 +222,7 @@ class MatchEngineTest {
         assertEquals(MatchEngine.FailureReason.PLAYER_NOT_IN_GROUP, (match.removeHunter(hunter) as MatchEngine.MatchResult.Err).reason)
         match.addHunter(hunter)
         assertIs<MatchEngine.MatchResult.Ok>(match.clearHunters())
-        assertTrue(match.hunters.isEmpty())
+        assertTrue(match.currentStatus.hunters.isEmpty())
     }
 
     @Test
@@ -245,7 +245,7 @@ class MatchEngineTest {
         match.forceEnd()
         val result = match.addHunter(player("new"))
         assertIs<MatchEngine.MatchResult.Ok>(result)
-        assertIs<MatchEngine.MatchStatus.Idle>(match.currentStatus)
+        assertIs<MatchEngine.MatchState.Idle>(match.currentStatus)
     }
 
     @Test
@@ -255,15 +255,15 @@ class MatchEngineTest {
         fixture.engine.setRunner(runner)
         fixture.engine.forceStart(emptyList())
         fixture.engine.fullReset()
-        assertEquals(null, fixture.engine.runner)
-        assertTrue(fixture.engine.hunters.isEmpty())
-        assertIs<MatchEngine.MatchStatus.Idle>(fixture.engine.currentStatus)
+        assertEquals(null, fixture.engine.currentStatus.runner)
+        assertTrue(fixture.engine.currentStatus.hunters.isEmpty())
+        assertIs<MatchEngine.MatchState.Idle>(fixture.engine.currentStatus)
         assertTrue(fixture.scheduler.everyTickTasks.all { it.handle.cancelled })
 
         fixture.engine.setRunner(runner)
         fixture.engine.forceStart(emptyList())
         fixture.engine.shutdown()
-        assertEquals(null, fixture.engine.runner)
+        assertEquals(null, fixture.engine.currentStatus.runner)
     }
 
     @Test
@@ -275,7 +275,7 @@ class MatchEngineTest {
         match.forceEnd()
         val result = match.prime(emptyList())
         assertIs<MatchEngine.MatchResult.Ok>(result)
-        assertIs<MatchEngine.MatchStatus.Primed>(match.currentStatus)
+        assertIs<MatchEngine.MatchState.Primed>(match.currentStatus)
     }
 
     @Test
@@ -293,7 +293,7 @@ class MatchEngineTest {
         match.setRunner(runner)
         match.prime(emptyList())
         match.onEvent(ReportableEvent.PlayerMoved(player("other"), pos()))
-        assertIs<MatchEngine.MatchStatus.Primed>(match.currentStatus)
+        assertIs<MatchEngine.MatchState.Primed>(match.currentStatus)
     }
 
     @Test
@@ -302,7 +302,7 @@ class MatchEngineTest {
         match.onEvent(
             ReportableEvent.EntityDied(null, "minecraft:zombie", pos(), null, null),
         )
-        assertIs<MatchEngine.MatchStatus.Idle>(match.currentStatus)
+        assertIs<MatchEngine.MatchState.Idle>(match.currentStatus)
     }
 
     @Test
@@ -321,15 +321,15 @@ class MatchEngineTest {
         fixture.engine.setRunner(runner)
         fixture.engine.addHunter(player("hunter"))
         fixture.engine.prime(emptyList())
-        assertIs<MatchEngine.MatchStatus.Primed>(fixture.engine.currentStatus)
+        assertIs<MatchEngine.MatchState.Primed>(fixture.engine.currentStatus)
 
         fixture.engine.forceStart(emptyList())
-        assertIs<MatchEngine.MatchStatus.Active>(fixture.engine.currentStatus)
+        assertIs<MatchEngine.MatchState.Active>(fixture.engine.currentStatus)
         fixture.scheduler.runAllEveryTickTasks()
         runBlocking { delay(30.milliseconds) }
 
         fixture.engine.forceEnd()
-        val finished = fixture.engine.currentStatus as MatchEngine.MatchStatus.Finished
+        val finished = fixture.engine.currentStatus as MatchEngine.MatchState.Finished
         assertEquals(fixture.engine.lastMatchResult, finished)
         fixture.scheduler.runAllAfterTasks()
     }
@@ -342,7 +342,7 @@ class MatchEngineTest {
         match.setRunner(runner)
         match.addHunter(hunter)
         match.forceStart(listOf(player("online")))
-        assertEquals(setOf(hunter), match.hunters)
+        assertEquals(setOf(hunter), match.currentStatus.hunters)
     }
 
     @Test
@@ -353,7 +353,7 @@ class MatchEngineTest {
         match.onEvent(
             ReportableEvent.EntityDied(null, "minecraft:sheep", pos(), null, null),
         )
-        assertIs<MatchEngine.MatchStatus.Primed>(match.currentStatus)
+        assertIs<MatchEngine.MatchState.Primed>(match.currentStatus)
     }
 
     @Test
@@ -364,7 +364,7 @@ class MatchEngineTest {
         match.forceStart(emptyList())
         match.forceEnd()
         assertIs<MatchEngine.MatchResult.Ok>(match.forceStart(emptyList()))
-        assertIs<MatchEngine.MatchStatus.Active>(match.currentStatus)
+        assertIs<MatchEngine.MatchState.Active>(match.currentStatus)
     }
 
     @Test
@@ -375,7 +375,7 @@ class MatchEngineTest {
         match.setRunner(runner)
         match.addHunter(hunter)
         match.prime(listOf(player("ignored")))
-        assertEquals(setOf(hunter), match.hunters)
+        assertEquals(setOf(hunter), match.currentStatus.hunters)
     }
 
     @Test
@@ -392,7 +392,7 @@ class MatchEngineTest {
                 entityKiller = null,
             ),
         )
-        assertIs<MatchEngine.MatchStatus.Active>(match.currentStatus)
+        assertIs<MatchEngine.MatchState.Active>(match.currentStatus)
     }
 
     @Test
@@ -401,7 +401,7 @@ class MatchEngineTest {
         match.setRunner(player("runner"))
         match.prime(emptyList())
         match.reset()
-        assertIs<MatchEngine.MatchStatus.Idle>(match.currentStatus)
+        assertIs<MatchEngine.MatchState.Idle>(match.currentStatus)
     }
 }
 

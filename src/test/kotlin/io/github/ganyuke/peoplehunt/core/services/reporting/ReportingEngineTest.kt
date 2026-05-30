@@ -24,9 +24,9 @@ class ReportingEngineTest {
         fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, setOf(hunter)))
         fixture.engine.onMatchEvent(
             MatchEvent.MatchEnd(
-                MatchEngine.MatchStatus.Finished(
+                MatchEngine.MatchState.Finished(
                     runner,
-                    listOf(hunter),
+                    setOf(hunter),
                     Clock.System.now(),
                     Clock.System.now(),
                     MatchEngine.MatchOutcome.INCONCLUSIVE,
@@ -131,8 +131,8 @@ class ReportingEngineTest {
     @Test
     fun getParticipantStats_returnsEmptyList() {
         val fixture = reportingEngineFixture()
-        assertTrue(fixture.engine.getParticipantStats().isEmpty())
-        val stats = ReportingEngine.ParticipantStats(player("p"), kills = 1, deaths = 2)
+        assertTrue(fixture.engine.participantStats.isEmpty())
+        val stats = CombatStatsTracker.PlayerStats(kills = 1)
         assertEquals(1, stats.kills)
         assertEquals(stats, stats.copy())
     }

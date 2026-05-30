@@ -6,7 +6,7 @@ import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 
 sealed class MatchEvent {
     data class MatchStart(val runner: MatchEngine.MatchPlayer, val hunters: Set<MatchEngine.MatchPlayer>) : MatchEvent()
-    data class MatchEnd(val result: MatchEngine.MatchStatus.Finished) : MatchEvent()
+    data class MatchEnd(val result: MatchEngine.MatchState.Finished) : MatchEvent()
     object CompassTick : MatchEvent()
     data class GiveHuntersCompass(val huntersUuids: Set<Uuid>) : MatchEvent()
     data class CompassUpdate(val pos: Pos4, val runnerDims: Map<Uuid, Pos4>, val huntersUuids: Set<Uuid>) : MatchEvent()

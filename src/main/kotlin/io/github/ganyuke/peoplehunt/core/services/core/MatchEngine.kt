@@ -24,31 +24,34 @@ class MatchEngine(
 
     data class MatchPlayer(val uuid: Uuid, val name: String)
 
-    sealed interface MatchStatus {
+    sealed interface MatchState {
+        val runner: MatchPlayer?
+        val hunters: Set<MatchPlayer>
+
         data class Idle(
-            val runner: MatchPlayer?,
-            val hunters: List<MatchPlayer>,
-        ) : MatchStatus
+            override val runner: MatchPlayer?,
+            override val hunters: Set<MatchPlayer> = emptySet(),
+        ) : MatchState
 
         data class Primed(
-            val runner: MatchPlayer,
-            val hunters: List<MatchPlayer>,
+            override val runner: MatchPlayer,
+            override val hunters: Set<MatchPlayer>,
             val primedAt: Instant,
-        ) : MatchStatus
+        ) : MatchState
 
         data class Active(
-            val runner: MatchPlayer,
-            val hunters: List<MatchPlayer>,
+            override val runner: MatchPlayer,
+            override val hunters: Set<MatchPlayer>,
             val startedAt: Instant,
-        ) : MatchStatus
+        ) : MatchState
 
         data class Finished(
-            val runner: MatchPlayer,
-            val hunters: List<MatchPlayer>,
+            override val runner: MatchPlayer,
+            override val hunters: Set<MatchPlayer>,
             val startedAt: Instant,
             val endedAt: Instant,
             val outcome: MatchOutcome,
-        ) : MatchStatus
+        ) : MatchState
     }
 
     sealed interface MatchResult {
@@ -68,80 +71,50 @@ class MatchEngine(
 
     val matchId: Uuid = Uuid.random()
 
-    private var matchPhase: MatchPhase = MatchPhase.IDLE
     private val matchIntervalService: MatchIntervalService = MatchIntervalService(config, scheduler, outbound)
     private val tasks = mutableListOf<TaskHandle>()
 
-    private var matchStartTime: Instant? = null
-    private var matchPrimedTime: Instant? = null
-
-    var runner: MatchPlayer? = null
+    var lastMatchResult: MatchState.Finished? = null
         private set
 
-    var hunters: Set<MatchPlayer> = emptySet()
+    var currentStatus: MatchState = MatchState.Idle(null, emptySet())
         private set
-
-    var lastMatchResult: MatchStatus.Finished? = null
-        private set
-
-    val currentStatus: MatchStatus
-        get() {
-            val hunterList = hunters.toList()
-            return when (matchPhase) {
-                MatchPhase.IDLE -> MatchStatus.Idle(runner, hunterList)
-                MatchPhase.PRIMED -> MatchStatus.Primed(
-                    checkNotNull(runner) { "Runner must be set when match is primed" },
-                    hunterList,
-                    checkNotNull(matchPrimedTime) { "Primed time must be set when match is primed" }
-                )
-
-                MatchPhase.ACTIVE -> MatchStatus.Active(
-                    checkNotNull(runner) { "Runner must be set when match is active" },
-                    hunterList,
-                    checkNotNull(matchStartTime) { "Start time must be set when match is active" }
-                )
-
-                MatchPhase.FINISHED -> checkNotNull(lastMatchResult) { "Last match result was not written on match completion!" }
-            }
-        }
 
     // put match in state where runner movement triggers start with `/ph prime`
-    fun prime(onlinePlayers: List<MatchPlayer>): MatchResult = when (matchPhase) {
-        MatchPhase.PRIMED -> MatchResult.Err(FailureReason.ALREADY_PRIMED)
-        MatchPhase.ACTIVE -> MatchResult.Err(FailureReason.ALREADY_STARTED)
-        MatchPhase.IDLE, MatchPhase.FINISHED -> {
-            if (hunters.isEmpty()) {
-                hunters = onlinePlayers.filter { it isNotReally runner }.toSet()
-            }
-
-            val currentRunner = runner
-            if (currentRunner != null) {
-                matchPrimedTime = Clock.System.now()
-                matchPhase = MatchPhase.PRIMED
-                MatchResult.Ok("Match primed")
-            } else {
+    fun prime(onlinePlayers: List<MatchPlayer>): MatchResult = when (val currentState = currentStatus) {
+        is MatchState.Primed -> MatchResult.Err(FailureReason.ALREADY_PRIMED)
+        is MatchState.Active -> MatchResult.Err(FailureReason.ALREADY_STARTED)
+        is MatchState.Idle, is MatchState.Finished -> {
+            val runnerCandidate = currentState.runner
+            if (runnerCandidate == null) {
                 MatchResult.Err(FailureReason.NO_RUNNER_SPECIFIED)
+            } else {
+                val huntersToUse = currentState.hunters.ifEmpty {
+                    // if empty, just use all the online players
+                    onlinePlayers.filter { it isNotReally runnerCandidate }
+                }.toSet()
+                currentStatus = MatchState.Primed(runnerCandidate, huntersToUse, Clock.System.now())
+                MatchResult.Ok("Match primed")
             }
         }
     }
 
     // manhunt lifecycle events triggered by game events
     fun onEvent(event: ReportableEvent) {
-        when (matchPhase) {
+        when (val currentState = currentStatus) {
             // start match when runner moves and match was primed
-            MatchPhase.PRIMED -> {
-                if (event is ReportableEvent.PlayerMoved && event.player isReally checkNotNull(runner))
-                    startMatch()
+            is MatchState.Primed -> {
+                if (event is ReportableEvent.PlayerMoved && event.player isReally currentState.runner)
+                    startMatch(currentState.runner, currentState.hunters)
             }
 
-            MatchPhase.ACTIVE -> {
+            is MatchState.Active -> {
                 if (event is ReportableEvent.EntityDied) when {
-                    event.player isReally checkNotNull(runner) { "Runner must be set when match is active" }
-                        -> // match active with null runner should not happen
-                        endMatch(MatchOutcome.HUNTER_VICTORY)
+                    event.player isReally currentState.runner ->
+                        endMatch(currentState, MatchOutcome.HUNTER_VICTORY)
 
                     event.entityIdentifier == "minecraft:ender_dragon" ->
-                        endMatch(MatchOutcome.RUNNER_VICTORY)
+                        endMatch(currentState, MatchOutcome.RUNNER_VICTORY)
                 }
             }
 
@@ -150,100 +123,99 @@ class MatchEngine(
     }
 
     // called from `/ph start`, force match to immediately start
-    fun forceStart(onlinePlayers: List<MatchPlayer>): MatchResult = when (matchPhase) {
-        MatchPhase.ACTIVE -> MatchResult.Err(FailureReason.ALREADY_STARTED)
-        MatchPhase.PRIMED, MatchPhase.IDLE, MatchPhase.FINISHED -> {
-            if (this.runner != null) {
-                if (hunters.isEmpty()) {
-                    hunters = onlinePlayers.filter { it isNotReally runner }.toSet()
-                }
-
-                startMatch()
+    fun forceStart(onlinePlayers: List<MatchPlayer>): MatchResult =
+        when (val currentState = currentStatus) {
+            is MatchState.Active -> MatchResult.Err(FailureReason.ALREADY_STARTED)
+            is MatchState.Primed -> {
+                startMatch(currentState.runner, currentState.hunters)
                 MatchResult.Ok()
-            } else {
-                MatchResult.Err(FailureReason.NO_RUNNER_SPECIFIED)
+            }
+
+            is MatchState.Idle, is MatchState.Finished -> {
+                val runnerToUse = currentState.runner
+                if (runnerToUse != null) {
+                    val huntersToUse = currentState.hunters.ifEmpty {
+                        onlinePlayers.filter { it isNotReally runnerToUse }
+                    }.toSet()
+                    startMatch(runnerToUse, huntersToUse)
+                    MatchResult.Ok()
+                } else {
+                    MatchResult.Err(FailureReason.NO_RUNNER_SPECIFIED)
+                }
             }
         }
-    }
 
     // called from `/ph stop`, force match to immediately stop
-    fun forceEnd(): MatchResult = when (matchPhase) {
-        // prime doesn't do anything put change match status, so just swap it back
-        MatchPhase.PRIMED -> {
-            matchPrimedTime = null
-            matchPhase = MatchPhase.IDLE
-            MatchResult.Ok("Match prime released")
+    fun forceEnd(): MatchResult =
+        when (val currentState = currentStatus) {
+            // prime doesn't do anything put change match status, so just swap it back
+            is MatchState.Primed -> {
+                currentStatus = MatchState.Idle(currentState.runner, currentState.hunters)
+                MatchResult.Ok("Match prime released")
+            }
+            // need to formally stop the match if the match already started
+            is MatchState.Active -> {
+                endMatch(currentState, MatchOutcome.INCONCLUSIVE)
+                MatchResult.Ok("Match force-stopped")
+            }
+
+            // IDLE and ENDED statuses are well... not started
+            else -> MatchResult.Err(FailureReason.NOT_RUNNING)
         }
 
-        // need to formally stop the match if the match already started
-        MatchPhase.ACTIVE -> {
-            endMatch(MatchOutcome.INCONCLUSIVE)
-            MatchResult.Ok("Match force-stopped")
-        }
+    private fun startMatch(activeRunner: MatchPlayer, activeHunters: Set<MatchPlayer>) {
+        val startTime = Clock.System.now()
+        currentStatus = MatchState.Active(activeRunner, activeHunters, startTime)
 
-        // IDLE and ENDED statuses are well... not started
-        else -> MatchResult.Err(FailureReason.NOT_RUNNING)
-    }
-
-    private fun startMatch() {
-        matchPhase = MatchPhase.ACTIVE
-        matchStartTime = Clock.System.now()
-        val currentRunner = checkNotNull(runner)  // match is primed already so this shouldn't break
-        outbound.post(MatchEvent.MatchStart(currentRunner, hunters))
+        outbound.post(MatchEvent.MatchStart(activeRunner, activeHunters.toSet()))
         outbound.post(MatchEvent.BroadcastNotification("Match started"))
 
         // maybe add a delay later
-        outbound.post(MatchEvent.GiveHuntersCompass(hunters.map { it.uuid }.toSet()))
+        outbound.post(MatchEvent.GiveHuntersCompass(activeHunters.map { it.uuid }.toSet()))
 
         tasks += scheduler.everyTicks(config.compassTickInterval) {
             outbound.post(MatchEvent.CompassTick)
         }
 
-        matchIntervalService.start { checkNotNull(matchStartTime) }?.let { tasks += it }
+        matchIntervalService.start { startTime }?.let { tasks += it }
     }
 
-    private fun endMatch(reason: MatchOutcome) {
-        matchPhase = MatchPhase.FINISHED
+    private fun endMatch(activeState: MatchState.Active, outcome: MatchOutcome) {
         tasks.forEach { it.cancel() }
         tasks.clear()
 
-        val matchEndTime = Clock.System.now()
-        val hunterList = hunters.toList()
-
-        val lastMatchResult = MatchStatus.Finished(
-            checkNotNull(runner) { "Runner must be set when match is finished" },
-            hunterList,
-            checkNotNull(matchStartTime) { "Start time must be set when match is finished" },
-            matchEndTime,
-            reason
+        val endTime = Clock.System.now()
+        val finishedStatus = MatchState.Finished(
+            runner = activeState.runner,
+            hunters = activeState.hunters,
+            startedAt = activeState.startedAt,
+            endedAt = endTime,
+            outcome = outcome
         )
 
-        // i guess in concurrent contexts, lastMatchResult could become null mid-code
-        // so we need to use the local lastMatchResult here
-        this.lastMatchResult = lastMatchResult
+        // update state machine to finished
+        // and also write to the historical state variable
+        currentStatus = finishedStatus
+        this.lastMatchResult = finishedStatus
 
-        val matchEndMessage = "Match ended after ${formatElapsed(elapsedSeconds())}"
-        outbound.post(MatchEvent.BroadcastNotification(matchEndMessage))
+        val elapsed = (endTime - activeState.startedAt).inWholeSeconds
+        outbound.post(MatchEvent.BroadcastNotification("Match ended after ${formatElapsed(elapsed)}"))
 
         // schedule so the status message appears immediately
         // after the player death notification instead of before
-        scheduler.after(1L, {
-            outbound.post(MatchEvent.MatchEnd(lastMatchResult))
-        })
+        scheduler.after(1L) {
+            outbound.post(MatchEvent.MatchEnd(finishedStatus))
+        }
     }
 
     fun reset() {
-        matchPhase = MatchPhase.IDLE
-        matchStartTime = null
-        matchPrimedTime = null
+        currentStatus = MatchState.Idle(currentStatus.runner, currentStatus.hunters)
     }
 
     fun fullReset() {
-        reset()
         tasks.forEach { it.cancel() }
         tasks.clear()
-        runner = null
-        hunters = emptySet()
+        currentStatus = MatchState.Idle(null, emptySet())
     }
 
     fun shutdown() {
@@ -251,65 +223,63 @@ class MatchEngine(
         matchIntervalService.shutdown()
     }
 
-    private fun elapsedSeconds() = (Clock.System.now() - checkNotNull(matchStartTime)).inWholeSeconds
-
     // prevent mutation while game is already active
-    private fun guardMutation(block: () -> MatchResult): MatchResult = when (matchPhase) {
-        MatchPhase.PRIMED -> MatchResult.Err(FailureReason.ALREADY_PRIMED)
-        MatchPhase.ACTIVE -> MatchResult.Err(FailureReason.ALREADY_STARTED)
-        else -> {
-            if (matchPhase == MatchPhase.FINISHED) reset() // clear /ph status on mutation
-            block()
+    private fun guardMutation(block: (MatchState.Idle) -> MatchResult): MatchResult {
+        return when (val currentState = currentStatus) {
+            is MatchState.Primed -> MatchResult.Err(FailureReason.ALREADY_PRIMED)
+            is MatchState.Active -> MatchResult.Err(FailureReason.ALREADY_STARTED)
+            is MatchState.Finished -> block(MatchState.Idle(currentState.runner, currentState.hunters))
+            is MatchState.Idle -> block(currentState)
         }
     }
 
-    fun setRunner(player: MatchPlayer) = guardMutation {
+    fun setRunner(player: MatchPlayer) = guardMutation { idleState ->
         // success: overriding existing runner / no runner
         // failure: candidate already runner / hunter
-        if (this.runner isReally player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_ALREADY_RUNNER)
-        if (hunters reallyContains player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_ALREADY_HUNTER)
+        if (idleState.runner isReally player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_ALREADY_RUNNER)
+        if (idleState.hunters reallyContains player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_ALREADY_HUNTER)
 
-        this.runner = player
+        currentStatus = idleState.copy(runner = player)
         MatchResult.Ok("Set ${player.name} as the runner")
     }
 
-    fun removeRunner(player: MatchPlayer) = guardMutation {
+    fun removeRunner(player: MatchPlayer) = guardMutation { idleState ->
         // success: removing current runner
         // failure: candidate not runner
-        if (this.runner isNotReally player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_NOT_IN_GROUP)
+        if (idleState.runner isNotReally player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_NOT_IN_GROUP)
 
-        this.runner = null
+        currentStatus = idleState.copy(runner = null)
         MatchResult.Ok("Removed ${player.name} as the runner")
     }
 
-    fun clearRunner(): MatchResult = guardMutation {
+    fun clearRunner(): MatchResult = guardMutation { idleState ->
         // unconditionally clear runner
-        this.runner = null
+        currentStatus = idleState.copy(runner = null)
         MatchResult.Ok("Cleared the runner")
     }
 
-    fun addHunter(player: MatchPlayer) = guardMutation {
+    fun addHunter(player: MatchPlayer) = guardMutation { idleState ->
         // success: adding candidate hunter
         // failure: candidate already hunter
-        if (this.runner isReally player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_ALREADY_HUNTER)
+        if (idleState.runner isReally player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_ALREADY_HUNTER)
 
-        this.hunters += player
+        currentStatus = idleState.copy(hunters = idleState.hunters + player)
         MatchResult.Ok("Added ${player.name} as a hunter")
     }
 
-    fun removeHunter(player: MatchPlayer): MatchResult = guardMutation {
+    fun removeHunter(player: MatchPlayer): MatchResult = guardMutation { idleState ->
         // success: removing candidate hunter
         // failure: candidate not a hunter
-        if (!(this.hunters reallyContains player)) return@guardMutation MatchResult.Err(FailureReason.PLAYER_NOT_IN_GROUP)
+        if (!(idleState.hunters reallyContains player)) return@guardMutation MatchResult.Err(FailureReason.PLAYER_NOT_IN_GROUP)
 
-        this.hunters -= player
+        currentStatus = idleState.copy(hunters = idleState.hunters - player)
         MatchResult.Ok("Removed ${player.name} as a hunter")
     }
 
-    fun clearHunters() = guardMutation {
+    fun clearHunters() = guardMutation { idleState ->
         // unconditionally clear hunters
-        val originalSize = hunters.size
-        hunters = emptySet()
+        val originalSize = idleState.hunters.size
+        currentStatus = idleState.copy(hunters = emptySet())
         MatchResult.Ok("Cleared $originalSize hunters")
     }
 }

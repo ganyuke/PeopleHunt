@@ -14,9 +14,9 @@ class CoreEventsTest {
     fun matchEventVariants_holdData() {
         val runner = player("runner")
         val hunters = setOf(player("h1"))
-        val finished = MatchEngine.MatchStatus.Finished(
+        val finished = MatchEngine.MatchState.Finished(
             runner,
-            hunters.toList(),
+            hunters,
             kotlin.time.Clock.System.now(),
             kotlin.time.Clock.System.now(),
             MatchEngine.MatchOutcome.RUNNER_VICTORY,

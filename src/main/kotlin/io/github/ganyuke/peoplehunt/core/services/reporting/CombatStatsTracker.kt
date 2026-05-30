@@ -1,4 +1,4 @@
-package io.github.ganyuke.peoplehunt.core.services.reporting.milestones
+package io.github.ganyuke.peoplehunt.core.services.reporting
 
 import kotlin.uuid.Uuid
 

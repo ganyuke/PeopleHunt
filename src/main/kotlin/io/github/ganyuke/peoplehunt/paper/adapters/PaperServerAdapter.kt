@@ -13,7 +13,7 @@ class PaperServerAdapter(
     fun onMatchEvent(event: MatchEvent) {
         when (event) {
             is MatchEvent.MatchEnd -> {
-                val stats = reportingEngine.getParticipantStats()
+                val stats = reportingEngine.participantStats
                 Bukkit.getOnlinePlayers().forEach {
                     it.sendMessage(MatchStatusFormatter.format(event.result, stats))
                 }

@@ -1,5 +1,6 @@
 package io.github.ganyuke.peoplehunt.core.services.reporting.milestones
 
+import io.github.ganyuke.peoplehunt.core.services.reporting.CombatStatsTracker
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

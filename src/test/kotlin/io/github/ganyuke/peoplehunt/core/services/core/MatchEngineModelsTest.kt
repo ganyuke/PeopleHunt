@@ -14,12 +14,12 @@ class MatchEngineModelsTest {
         val runner = player("runner")
         val hunter = player("hunter")
         val now = Clock.System.now()
-        val idle = MatchEngine.MatchStatus.Idle(runner, listOf(hunter))
-        val primed = MatchEngine.MatchStatus.Primed(runner, listOf(hunter), now)
-        val active = MatchEngine.MatchStatus.Active(runner, listOf(hunter), now)
-        val finished = MatchEngine.MatchStatus.Finished(
+        val idle = MatchEngine.MatchState.Idle(runner, setOf(hunter))
+        val primed = MatchEngine.MatchState.Primed(runner, setOf(hunter), now)
+        val active = MatchEngine.MatchState.Active(runner, setOf(hunter), now)
+        val finished = MatchEngine.MatchState.Finished(
             runner,
-            listOf(hunter),
+            setOf(hunter),
             now,
             now,
             MatchEngine.MatchOutcome.HUNTER_VICTORY,

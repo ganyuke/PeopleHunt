@@ -8,10 +8,11 @@ import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.ports.LoggerPort
 import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
-import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.CombatStatsTracker
+import io.github.ganyuke.peoplehunt.core.services.reporting.CombatStatsTracker
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.MilestoneTracker
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 import io.github.ganyuke.peoplehunt.core.ports.StructureLocatorPort
+import kotlin.uuid.Uuid
 
 class ReportingEngine(
     private val outbound: MatchEventBus, // need these two for reporting write errors to operators online
@@ -19,13 +20,18 @@ class ReportingEngine(
     private val structureLocator: StructureLocatorPort,
     private val logger: LoggerPort,
 ) {
-    data class ParticipantStats(val player: MatchEngine.MatchPlayer, val kills: Int, val deaths: Int)
-
     private val milestoneTracker = MilestoneTracker()
     private val combatStatsTracker = CombatStatsTracker()
 
     private var currentRunner: MatchEngine.MatchPlayer? = null
     private var currentHunters: Set<MatchEngine.MatchPlayer> = emptySet()
+
+    private val nameResolver = HashMap<Uuid, String>()
+
+    val participantStats get() = combatStatsTracker.participantStats.map { pair -> MatchEngine.MatchPlayer(
+        pair.first,
+        nameResolver[pair.first] ?: "unknown"
+    ) to pair.second }
 
     // will be called by async SQL thread so need to run this on the main thread
     // everything else in this engine runs on the main Bukkit thread
@@ -80,6 +86,8 @@ class ReportingEngine(
     private fun handleEntityDied(event: ReportableEvent.EntityDied) {
         // Log player deaths
         event.player?.let { deadPlayer ->
+            nameResolver[deadPlayer.uuid] = deadPlayer.name
+
             if (deadPlayer isReally currentRunner || currentHunters reallyContains deadPlayer) {
                 logger.info("Combat Stats: ${deadPlayer.name} has died.")
                 combatStatsTracker.recordDeath(deadPlayer.uuid)
@@ -90,6 +98,8 @@ class ReportingEngine(
 
         // Log player kills
         event.playerKiller?.let { deadPlayer ->
+            nameResolver[deadPlayer.uuid] = deadPlayer.name
+
             if (deadPlayer isReally currentRunner || currentHunters reallyContains deadPlayer) {
                 logger.info("Combat Stats: ${deadPlayer.name} scored a kill against ${event.entityIdentifier}.")
                 combatStatsTracker.recordKill(deadPlayer.uuid)
@@ -97,9 +107,5 @@ class ReportingEngine(
                 logger.warn("Received death event for untracked killer: ${deadPlayer.name} (UID: ${deadPlayer.uuid})")
             }
         }
-    }
-
-    fun getParticipantStats(): List<ParticipantStats> {
-        return emptyList()
     }
 }

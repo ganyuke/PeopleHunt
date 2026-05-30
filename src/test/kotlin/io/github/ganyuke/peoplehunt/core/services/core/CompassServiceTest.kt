@@ -75,9 +75,9 @@ class CompassServiceTest {
         service.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
         service.onReportableEvent(ReportableEvent.PlayerMoved(runner, pos(0, 0, 0, world)))
         service.onMatchEvent(MatchEvent.MatchEnd(
-            MatchEngine.MatchStatus.Finished(
+            MatchEngine.MatchState.Finished(
                 runner,
-                emptyList(),
+                emptySet(),
                 kotlin.time.Clock.System.now(),
                 kotlin.time.Clock.System.now(),
                 MatchEngine.MatchOutcome.INCONCLUSIVE,
