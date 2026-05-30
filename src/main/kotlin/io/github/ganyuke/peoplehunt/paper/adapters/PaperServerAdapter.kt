@@ -10,16 +10,14 @@ import io.github.ganyuke.peoplehunt.paper.utils.MatchStatusFormatter
 import net.kyori.adventure.text.format.NamedTextColor
 
 class PaperServerAdapter(
-    private val matchEngine: MatchEngine,
     private val reportingEngine: ReportingEngine,
 ) {
     fun onMatchEvent(event: MatchEvent) {
         when (event) {
             is MatchEvent.MatchEnd -> {
-                val status = matchEngine.getMatchStatus()
                 val stats = reportingEngine.getParticipantStats()
                 Bukkit.getOnlinePlayers().forEach {
-                    it.sendMessage(MatchStatusFormatter.format(status, stats))
+                    it.sendMessage(MatchStatusFormatter.format(event.result, stats))
                 }
             }
 
@@ -32,7 +30,7 @@ class PaperServerAdapter(
                     .forEach { it.sendMessage(Component.text(event.message, NamedTextColor.YELLOW)) }
 
             is MatchEvent.IntervalElapsed ->
-                Bukkit.broadcast(Component.text("Elapsed: ${formatElapsed(event.elapsedSeconds)}"))
+                Bukkit.broadcast(Component.text("Manhunt time elapsed: ${event.minutes} minute(s)", NamedTextColor.YELLOW))
 
             else -> {}
         }

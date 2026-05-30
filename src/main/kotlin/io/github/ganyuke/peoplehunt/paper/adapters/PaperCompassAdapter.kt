@@ -1,9 +1,10 @@
 package io.github.ganyuke.peoplehunt.paper.adapters
 
-import org.bukkit.Bukkit
+import io.github.ganyuke.peoplehunt.core.Utils
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
-import io.github.ganyuke.peoplehunt.paper.utils.Utils.toLocation
 import io.github.ganyuke.peoplehunt.paper.items.HunterCompass
+import io.github.ganyuke.peoplehunt.paper.utils.Utils.toLocation
+import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.entity.Player
@@ -12,8 +13,9 @@ import org.bukkit.inventory.meta.CompassMeta
 import kotlin.uuid.Uuid
 import kotlin.uuid.toKotlinUuid
 
-class PaperCompassAdapter {
-    private val globalCompass = true
+
+class PaperCompassAdapter(config: Utils.PhConfig) {
+    private val globalCompass = config.globalCompass
 
     // unfortunately, this method will cause the compass to bob when in a player's hand
     // but on the bright side it won't override your compasses
@@ -84,10 +86,23 @@ class PaperCompassAdapter {
             }
     }
 
+    private fun handleResetCompassToWorldSpawn(event: MatchEvent.MatchEnd) {
+        val overworld = Bukkit.getWorlds().get(0)
+        val spawn: Location = overworld.spawnLocation
+        val hunters: Set<Uuid> = event.result.hunters.map { it.uuid }.toSet()
+
+        Bukkit.getOnlinePlayers()
+            .filter { it.uniqueId.toKotlinUuid() in hunters }
+            .forEach { hunter ->
+                hunter.compassTarget = spawn
+            }
+    }
+
     fun onMatchEvent(event: MatchEvent) {
         when (event) {
             is MatchEvent.CompassUpdate -> handleCompassUpdate(event)
             is MatchEvent.GiveHuntersCompass -> handleGiveCompasses(event)
+            is MatchEvent.MatchEnd -> handleResetCompassToWorldSpawn(event)
             else -> {}
         }
     }

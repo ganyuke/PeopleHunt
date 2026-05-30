@@ -19,7 +19,8 @@ object CommandErrors {
     sealed interface CommandFailure {
         object TooManyRunners : CommandFailure
         object NoEligibleTargets : CommandFailure
-        object  MustBePlayer : CommandFailure
+        object MustBePlayer : CommandFailure
+        object NoLastMatch : CommandFailure
         data class EngineReason(val reason: FailureReason) : CommandFailure
     }
 
@@ -34,6 +35,7 @@ object CommandErrors {
         CommandFailure.TooManyRunners -> "Runner selection must resolve to exactly one player."
         CommandFailure.NoEligibleTargets -> "No eligible players were selected."
         CommandFailure.MustBePlayer -> "Command can only be used by players."
+        CommandFailure.NoLastMatch -> "No last match found."
         is CommandFailure.EngineReason -> when (failure.reason) {
             FailureReason.ALREADY_PRIMED -> "The match is already primed."
             FailureReason.ALREADY_STARTED -> "The match has already started."

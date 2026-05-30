@@ -1,5 +1,7 @@
 package io.github.ganyuke.peoplehunt.core.ports
 
+import kotlin.time.Duration
+
 interface TaskHandle {
     fun cancel()
 }
@@ -7,4 +9,5 @@ interface TaskHandle {
 interface SchedulerPort {
     fun everyTicks(interval: Long, delay: Long = interval, task: () -> Unit): TaskHandle
     fun after(delay: Long, task: () -> Unit): TaskHandle
+    fun runOnMainThread(task: () -> Unit)
 }

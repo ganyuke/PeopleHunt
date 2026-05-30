@@ -10,6 +10,7 @@ import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
 import io.github.ganyuke.peoplehunt.paper.utils.Utils.toPos4
 import org.bukkit.event.entity.EntityDamageByEntityEvent
+import org.bukkit.event.player.PlayerRespawnEvent
 import kotlin.uuid.toKotlinUuid
 
 class PaperListener(private val inbound: ReportableEventBus) : Listener {
@@ -40,6 +41,18 @@ class PaperListener(private val inbound: ReportableEventBus) : Listener {
                 pos = event.entity.location.toPos4(),
                 playerKiller = (killer as? Player)?.uniqueId?.toKotlinUuid(),
                 entityKiller = killer?.takeIf { it !is Player }?.type?.key?.toString(),
+            )
+        )
+    }
+
+    @EventHandler
+    fun onPlayerRespawn(event: PlayerRespawnEvent) {
+        val player = event.player
+
+        inbound.post(
+            ReportableEvent.PlayerRespawned(
+                player = player.uniqueId.toKotlinUuid(),
+                pos = player.location.toPos4()
             )
         )
     }

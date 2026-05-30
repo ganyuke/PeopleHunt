@@ -1,5 +1,6 @@
 package io.github.ganyuke.peoplehunt.core
 
+import kotlin.time.Duration
 import kotlin.uuid.Uuid
 
 object Utils {
@@ -13,4 +14,6 @@ object Utils {
     }
 
     const val PEOPLEHUNT_NAMESPACE = "peoplehunt"
+
+    data class PhConfig(val globalCompass: Boolean, val matchMinutesInterval: Duration, val compassTickInterval: Long)
 }

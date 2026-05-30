@@ -18,4 +18,8 @@ class PaperSchedulerAdapter(private val plugin: JavaPlugin) : SchedulerPort {
             override fun cancel() = handle.cancel()
         }
     }
+
+    override fun runOnMainThread(task: () -> Unit) {
+        plugin.server.scheduler.runTask(plugin, Runnable { task() })
+    }
 }

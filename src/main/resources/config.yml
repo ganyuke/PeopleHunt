@@ -1,0 +1,16 @@
+# Controls implementation of manhunt compass.
+# true  - overrides hunters' global compass location, affects ALL compasses
+#         held by hunters. invasive but no hand bobbing. resets location to
+#         hunter overworld world spawn on match conclusion.
+# false - lodestone-based compass. specific to Hunter Compasses, but
+#         causes hand bobbing when the runner moves (can give away
+#         important combat information).
+global-compass: true
+
+# How long into the match to broadcast an elapsed time
+# notification (in minutes).
+match-minutes-interval: 30
+
+# How often (in ticks) to update the hunter compass position
+# with the runner's current location.
+compass-tick-interval: 4

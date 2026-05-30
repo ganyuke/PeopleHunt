@@ -19,7 +19,7 @@ object ParticipantSubtree {
             override fun clear(engine: MatchEngine): MatchEngine.MatchResult = engine.clearRunner()
 
             override fun getCandidates(engine: MatchEngine): Collection<MatchPlayer> =
-                listOfNotNull(engine.getRunner())
+                listOfNotNull(engine.runner)
 
             override fun remove(engine: MatchEngine, player: MatchPlayer): MatchEngine.MatchResult =
                 engine.removeRunner(player)
@@ -47,15 +47,15 @@ object ParticipantSubtree {
                             return@executes CommandErrors.fail(ctx.source, CommandErrors.CommandFailure.TooManyRunners)
                         }
 
-                        targets.first().uniqueId.toKotlinUuid() in engine.getHunters().map { it.uuid } -> {
+                        targets.first().uniqueId.toKotlinUuid() in engine.hunters.map { it.uuid } -> {
                             return@executes CommandErrors.fail(ctx.source, FailureReason.PLAYER_ALREADY_HUNTER)
                         }
 
-                        targets.first().uniqueId.toKotlinUuid() == engine.getRunner()?.uuid -> {
+                        targets.first().uniqueId.toKotlinUuid() == engine.runner?.uuid -> {
                             return@executes CommandErrors.fail(ctx.source, FailureReason.PLAYER_ALREADY_RUNNER)
                         }
                     }
-                    CommandErrors.handle(ctx.source, engine.setRunner(targets.first().toMatchPlayer()))
+                    return@executes CommandErrors.handle(ctx.source, engine.setRunner(targets.first().toMatchPlayer()))
                 })
         },
 
@@ -63,7 +63,7 @@ object ParticipantSubtree {
             override fun clear(engine: MatchEngine): MatchEngine.MatchResult = engine.clearHunters()
 
             override fun getCandidates(engine: MatchEngine): Collection<MatchPlayer> =
-                engine.getHunters()
+                engine.hunters
 
             override fun remove(engine: MatchEngine, player: MatchPlayer): MatchEngine.MatchResult =
                 engine.removeHunter(player)
@@ -76,7 +76,7 @@ object ParticipantSubtree {
                     .executes { ctx ->
                         val resolver = ctx.getArgument("player", PlayerSelectorArgumentResolver::class.java)
                         val targets = resolver.resolve(ctx.source)
-                        val currentRunner = engine.getRunner()
+                        val currentRunner = engine.runner
 
                         // don't let players add the runner as a hunter specifically
                         if (targets.singleOrNull()?.uniqueId?.toKotlinUuid() == currentRunner?.uuid) {
@@ -84,7 +84,7 @@ object ParticipantSubtree {
                         }
 
                         // error out on adding an existing hunter
-                        if (targets.singleOrNull()?.uniqueId?.toKotlinUuid() in engine.getHunters().map { it.uuid }) {
+                        if (targets.singleOrNull()?.uniqueId?.toKotlinUuid() in engine.hunters.map { it.uuid }) {
                             return@executes CommandErrors.fail(ctx.source, FailureReason.PLAYER_ALREADY_HUNTER)
                         }
 
@@ -102,7 +102,7 @@ object ParticipantSubtree {
                             val res = engine.addHunter(bukkitPlayer.toMatchPlayer())
                             if (res is MatchEngine.MatchResult.Err) compositeResult = res
                         }
-                        CommandErrors.handle(ctx.source, compositeResult)
+                        return@executes CommandErrors.handle(ctx.source, compositeResult)
                     })
         };
 
@@ -130,7 +130,7 @@ object ParticipantSubtree {
                             FailureReason.PLAYER_NOT_IN_GROUP
                         )
 
-                    CommandErrors.handle(ctx.source, group.remove(matchEngine, target))
+                    return@executes CommandErrors.handle(ctx.source, group.remove(matchEngine, target))
                 }
         )
 
@@ -142,7 +142,7 @@ object ParticipantSubtree {
 
         // clear subtree delegates to enum's clear function
         val clearBuilder = Commands.literal("clear").executes { ctx ->
-            CommandErrors.handle(ctx.source, group.clear(matchEngine))
+            return@executes CommandErrors.handle(ctx.source, group.clear(matchEngine))
         }
 
         // add subtree delegates to enum's add builder since runner is 1:1 and hunter is many

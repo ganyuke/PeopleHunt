@@ -12,14 +12,26 @@ class CompassService(private val outbound: MatchEventBus) {
     private var huntersUuid: Set<Uuid> = emptySet()
     private val runnerPosInDim: MutableMap<Uuid, Pos4> = mutableMapOf()
 
-    fun onReportableEvent(event: ReportableEvent) {
-        if (event is ReportableEvent.PlayerMoved && event.player == runnerUuid) {
-            runnerDim = event.pos.w
-            runnerPosInDim[event.pos.w] = event.pos
-        }
-    }
+    fun onReportableEvent(event: ReportableEvent) : Unit =
+        when (event) {
+            // feature: update tracked position on runner movement in dimension
+            is ReportableEvent.PlayerMoved -> {
+                if (event.player != runnerUuid) return
 
-    fun onMatchEvent(event: MatchEvent) {
+                runnerDim = event.pos.w
+                runnerPosInDim[event.pos.w] = event.pos
+            }
+
+            // feature: give compass on hunter respawn
+            is ReportableEvent.PlayerRespawned -> {
+                if (event.player !in huntersUuid) return
+                outbound.post(MatchEvent.GiveHuntersCompass(setOf(event.player)))
+            }
+
+            else -> {}
+        }
+
+    fun onMatchEvent(event: MatchEvent) =
         when (event) {
             is MatchEvent.MatchStart -> {
                 runnerUuid = event.runner.uuid
@@ -37,7 +49,6 @@ class CompassService(private val outbound: MatchEventBus) {
 
             else -> {}
         }
-    }
 
     private fun tick() {
         val dim = runnerDim ?: return

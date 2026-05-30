@@ -11,20 +11,28 @@ import io.github.ganyuke.peoplehunt.paper.adapters.PaperSchedulerAdapter
 import io.github.ganyuke.peoplehunt.paper.adapters.PaperServerAdapter
 import io.github.ganyuke.peoplehunt.paper.command.match.MatchCommand
 import io.github.ganyuke.peoplehunt.paper.listeners.PaperListener
+import io.github.ganyuke.peoplehunt.paper.utils.ConfigLoader
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
 
 class PeopleHunt : JavaPlugin() {
+    private lateinit var matchEngine: MatchEngine
+
     override fun onEnable() {
+        saveDefaultConfig()
+
+        val phConfig = ConfigLoader.load(this.logger, this.config)
+
         val inbound = ReportableEventBus()
         val outbound = MatchEventBus()
 
         val scheduler = PaperSchedulerAdapter(this)
-        val matchEngine = MatchEngine(scheduler, outbound)
+
+        matchEngine = MatchEngine(scheduler, outbound, phConfig)
         val reportingEngine = ReportingEngine()
 
         val compass = CompassService(outbound)
-        val paperCompass = PaperCompassAdapter()
-        val paperServer = PaperServerAdapter(matchEngine, reportingEngine)
+        val paperCompass = PaperCompassAdapter(phConfig)
+        val paperServer = PaperServerAdapter(reportingEngine)
 
         // register listeners on bus that match and compass react to
         inbound.register(matchEngine::onEvent)
@@ -47,5 +55,6 @@ class PeopleHunt : JavaPlugin() {
 
     override fun onDisable() {
         // tasks cancelled by MatchEngine.endMatch or server shutdown
+        matchEngine.shutdown()
     }
 }
