@@ -74,6 +74,7 @@ class MatchEngine(
     private val matchIntervalService: MatchIntervalService = MatchIntervalService(config, scheduler, outbound)
     private val tasks = mutableListOf<TaskHandle>()
 
+    // need to store this to support `/ph status last` feature
     var lastMatchResult: MatchState.Finished? = null
         private set
 

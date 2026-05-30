@@ -51,6 +51,6 @@ class PortDefaultMethodsTest {
     }
 
     private fun assertNotEquals(a: Any, b: Any) {
-        kotlin.test.assertTrue(a != b)
+        assertTrue(a != b)
     }
 }

@@ -1,7 +1,5 @@
 package io.github.ganyuke.peoplehunt.core.ports
 
-import kotlin.time.Duration
-
 interface TaskHandle {
     fun cancel()
 }

@@ -1,6 +1,5 @@
 package io.github.ganyuke.peoplehunt.core.events
 
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.testutil.player
 import io.github.ganyuke.peoplehunt.core.testutil.pos
 import kotlin.test.Test

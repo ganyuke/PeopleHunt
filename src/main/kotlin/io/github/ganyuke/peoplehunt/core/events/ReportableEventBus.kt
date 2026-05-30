@@ -1,4 +1,4 @@
-package io.github.ganyuke.peoplehunt.core.events;
+package io.github.ganyuke.peoplehunt.core.events
 
 class ReportableEventBus {
     typealias ReportableEventListener = (event: ReportableEvent) -> Unit
