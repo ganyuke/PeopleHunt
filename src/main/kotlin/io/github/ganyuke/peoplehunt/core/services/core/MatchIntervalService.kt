@@ -1,23 +1,18 @@
 package io.github.ganyuke.peoplehunt.core.services.core
 
-import io.github.ganyuke.peoplehunt.core.Utils
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
 import io.github.ganyuke.peoplehunt.core.ports.TaskHandle
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import io.github.ganyuke.peoplehunt.core.utils.PhConfig
+import kotlinx.coroutines.*
 import kotlin.math.roundToLong
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Instant
 
 class MatchIntervalService(
-    private val config: Utils.PhConfig,
+    private val config: PhConfig,
     private val scheduler: SchedulerPort,
     private val outbound: MatchEventBus,
 ) {

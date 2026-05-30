@@ -1,23 +1,22 @@
 package io.github.ganyuke.peoplehunt.paper
 
-import org.bukkit.plugin.java.JavaPlugin
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
 import io.github.ganyuke.peoplehunt.core.services.core.CompassService
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.reporting.ReportingEngine
-import io.github.ganyuke.peoplehunt.paper.adapters.PaperCompassAdapter
 import io.github.ganyuke.peoplehunt.paper.adapters.PaperLoggerAdapter
 import io.github.ganyuke.peoplehunt.paper.adapters.PaperSchedulerAdapter
-import io.github.ganyuke.peoplehunt.paper.adapters.PaperServerAdapter
-import io.github.ganyuke.peoplehunt.paper.adapters.StructureLocatorAdapter
 import io.github.ganyuke.peoplehunt.paper.command.match.MatchCommand
+import io.github.ganyuke.peoplehunt.paper.events.BroadcastEventHandler
+import io.github.ganyuke.peoplehunt.paper.events.CompassEventHandler
 import io.github.ganyuke.peoplehunt.paper.listeners.CombatStatsListener
 import io.github.ganyuke.peoplehunt.paper.listeners.CoreListener
 import io.github.ganyuke.peoplehunt.paper.listeners.EndPortalListener
 import io.github.ganyuke.peoplehunt.paper.listeners.MilestoneListener
 import io.github.ganyuke.peoplehunt.paper.utils.ConfigLoader
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
+import org.bukkit.plugin.java.JavaPlugin
 
 class PeopleHunt : JavaPlugin() {
     private lateinit var matchEngine: MatchEngine
@@ -30,15 +29,14 @@ class PeopleHunt : JavaPlugin() {
         val inbound = ReportableEventBus()
         val outbound = MatchEventBus()
 
-        val compassAdapter = PaperCompassAdapter(phConfig)
+        val compassAdapter = CompassEventHandler(phConfig)
         val schedulerAdapter = PaperSchedulerAdapter(this)
-        val structureLocatorAdapter = StructureLocatorAdapter()
         val loggerAdapter = PaperLoggerAdapter(this)
 
         matchEngine = MatchEngine(schedulerAdapter, outbound, phConfig)
-        val reportingEngine = ReportingEngine(outbound, schedulerAdapter, structureLocatorAdapter, loggerAdapter)
+        val reportingEngine = ReportingEngine(outbound, schedulerAdapter, loggerAdapter)
 
-        val paperServerAdapter = PaperServerAdapter(reportingEngine)
+        val paperServerAdapter = BroadcastEventHandler(reportingEngine)
         
         val compassService = CompassService(outbound)
 

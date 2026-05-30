@@ -3,8 +3,7 @@ package io.github.ganyuke.peoplehunt.paper.listeners
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
-import io.github.ganyuke.peoplehunt.paper.utils.Utils.toMatchPlayer
-import io.github.ganyuke.peoplehunt.paper.utils.Utils.toPos4
+import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
 import io.papermc.paper.event.player.PlayerTradeEvent
 import org.bukkit.Material
 import org.bukkit.entity.EnderCrystal
@@ -13,14 +12,12 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
-import org.bukkit.event.block.BlockFormEvent
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityPickupItemEvent
 import org.bukkit.event.entity.EntitySpawnEvent
 import org.bukkit.event.inventory.CraftItemEvent
 import org.bukkit.event.player.PlayerBucketFillEvent
 import org.bukkit.event.player.PlayerChangedWorldEvent
-import org.bukkit.event.world.PortalCreateEvent
 
 /**
  * Listeners to emit events for the MilestoneTracker.

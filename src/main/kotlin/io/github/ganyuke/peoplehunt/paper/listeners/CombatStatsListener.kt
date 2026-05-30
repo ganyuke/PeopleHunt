@@ -2,7 +2,7 @@ package io.github.ganyuke.peoplehunt.paper.listeners
 
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
-import io.github.ganyuke.peoplehunt.paper.utils.Utils.toMatchPlayer
+import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
 import org.bukkit.entity.Damageable
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler

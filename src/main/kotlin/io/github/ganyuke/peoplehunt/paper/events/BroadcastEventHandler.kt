@@ -1,22 +1,20 @@
-package io.github.ganyuke.peoplehunt.paper.adapters
+package io.github.ganyuke.peoplehunt.paper.events
 
-import net.kyori.adventure.text.Component
-import org.bukkit.Bukkit
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.services.reporting.ReportingEngine
 import io.github.ganyuke.peoplehunt.paper.utils.MatchStatusFormatter
+import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
+import org.bukkit.Bukkit
 
-class PaperServerAdapter(
+class BroadcastEventHandler(
     private val reportingEngine: ReportingEngine,
 ) {
     fun onMatchEvent(event: MatchEvent) {
         when (event) {
             is MatchEvent.MatchEnd -> {
                 val stats = reportingEngine.participantStats
-                Bukkit.getOnlinePlayers().forEach {
-                    it.sendMessage(MatchStatusFormatter.format(event.result, stats))
-                }
+                Bukkit.broadcast(MatchStatusFormatter.format(event.result, stats))
             }
 
             is MatchEvent.BroadcastNotification ->

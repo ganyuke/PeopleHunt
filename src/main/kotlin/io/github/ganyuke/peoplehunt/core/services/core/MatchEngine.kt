@@ -1,28 +1,23 @@
 package io.github.ganyuke.peoplehunt.core.services.core
 
-import io.github.ganyuke.peoplehunt.core.Utils
-import kotlin.uuid.Uuid
-import io.github.ganyuke.peoplehunt.core.Utils.formatElapsed
-import io.github.ganyuke.peoplehunt.core.Utils.isNotReally
-import io.github.ganyuke.peoplehunt.core.Utils.isReally
-import io.github.ganyuke.peoplehunt.core.Utils.reallyContains
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
+import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
 import io.github.ganyuke.peoplehunt.core.ports.TaskHandle
+import io.github.ganyuke.peoplehunt.core.utils.*
 import kotlin.time.Clock
 import kotlin.time.Instant
+import kotlin.uuid.Uuid
 
 class MatchEngine(
     private val scheduler: SchedulerPort,
     private val outbound: MatchEventBus,
-    private val config: Utils.PhConfig
+    private val config: PhConfig
 ) {
     private enum class MatchPhase { IDLE, PRIMED, ACTIVE, FINISHED }
     enum class MatchOutcome { RUNNER_VICTORY, HUNTER_VICTORY, INCONCLUSIVE }
-
-    data class MatchPlayer(val uuid: Uuid, val name: String)
 
     sealed interface MatchState {
         val runner: MatchPlayer?
@@ -105,7 +100,7 @@ class MatchEngine(
         when (val currentState = currentStatus) {
             // start match when runner moves and match was primed
             is MatchState.Primed -> {
-                if (event is ReportableEvent.PlayerMoved && event.player isReally currentState.runner)
+                if (event is ReportableEvent.PlayerMoved && event.movementSnapshot.player isReally currentState.runner)
                     startMatch(currentState.runner, currentState.hunters)
             }
 

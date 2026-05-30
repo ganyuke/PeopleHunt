@@ -86,15 +86,16 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 
 ### Core path recorder
 
-* [ ] **Player Position:** Capture coordinates, world/dimension, and handle discontinuities + filter out minor teleport noises (e.g. vanilla push-out mechanics).
-* [ ] **Teleportation:** Record distinct teleportation causes (Ender Pearl, commands, etc.).
-* [ ] **Player Status:** Record basic movement states (swimming, flying, falling, walking, running) and active game mode.
-* [ ] **Player Vitals:** Poll health, absorption, hunger, saturation, breath levels, XP levels.
+* [x] Capture player coordinates + world/dimension
+* [ ] Record distinct teleportation causes (Ender Pearl, commands, etc.).
+* [ ] Handle discontinuities in path + filter out minor teleport noises (e.g. vanilla push-out mechanics).
+* [x] Record basic movement states (swimming, flying, falling, walking, running) and active game mode.
+* [ ] Poll health, absorption, hunger, saturation, breath levels, XP levels.
 
 ### Combat and damage tracking
 
-* [ ] **Player Damage:** Record exact damage and attribute cause (explosions, fall damage, lava, etc.) back to a specific player or entity.
-* [ ] **Projectiles:** Record projectile paths, entity types, and resolve projectile owner.
+* [ ] Record exact damage and attribute cause (explosions, fall damage, lava, etc.) back to a specific player or entity.
+* [ ] Record projectile paths, entity types, and resolve projectile owner.
 
 ---
 

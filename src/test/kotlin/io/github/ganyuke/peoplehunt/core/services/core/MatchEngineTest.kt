@@ -74,6 +74,7 @@ class MatchEngineTest {
         fixture.engine.addHunter(hunter)
         fixture.engine.prime(emptyList())
 
+        // todo: update PlayerMoved to new MovementSnapshot format
         fixture.engine.onEvent(ReportableEvent.PlayerMoved(runner, pos()))
 
         assertIs<MatchEngine.MatchState.Active>(fixture.engine.currentStatus)
@@ -232,6 +233,7 @@ class MatchEngineTest {
         match.setRunner(runner)
         match.prime(emptyList())
         assertEquals(MatchEngine.FailureReason.ALREADY_PRIMED, (match.setRunner(player("x")) as MatchEngine.MatchResult.Err).reason)
+        // todo: update PlayerMoved to new MovementSnapshot format
         match.onEvent(ReportableEvent.PlayerMoved(runner, pos()))
         assertEquals(MatchEngine.FailureReason.ALREADY_STARTED, (match.addHunter(player("h")) as MatchEngine.MatchResult.Err).reason)
     }
@@ -292,6 +294,7 @@ class MatchEngineTest {
         val runner = player("runner")
         match.setRunner(runner)
         match.prime(emptyList())
+        // todo: update PlayerMoved to new MovementSnapshot format
         match.onEvent(ReportableEvent.PlayerMoved(player("other"), pos()))
         assertIs<MatchEngine.MatchState.Primed>(match.currentStatus)
     }

@@ -2,7 +2,7 @@ package io.github.ganyuke.peoplehunt.paper.listeners
 
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
-import io.github.ganyuke.peoplehunt.paper.utils.Utils.toPos4
+import io.github.ganyuke.peoplehunt.paper.utils.toPos4
 import org.bukkit.Location
 
 import org.bukkit.Material

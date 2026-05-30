@@ -39,18 +39,4 @@ class PortDefaultMethodsTest {
         logger.error("with cause", ex)
         assertEquals("with cause" to ex, messages.last())
     }
-
-    @Test
-    fun playerSnapshot_supportsCopyAndEquality() {
-        val snapshot = PlayerSnapshot(
-            kotlin.uuid.Uuid.random(),
-            io.github.ganyuke.peoplehunt.core.testutil.pos(4, 5, 6),
-        )
-        assertEquals(snapshot, snapshot.copy())
-        assertNotEquals(snapshot, snapshot.copy(uuid = kotlin.uuid.Uuid.random()))
-    }
-
-    private fun assertNotEquals(a: Any, b: Any) {
-        assertTrue(a != b)
-    }
 }

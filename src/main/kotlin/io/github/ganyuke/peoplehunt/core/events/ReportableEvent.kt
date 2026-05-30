@@ -1,12 +1,13 @@
 package io.github.ganyuke.peoplehunt.core.events
 
-import io.github.ganyuke.peoplehunt.core.Utils.Pos4
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.MatchPlayer
+import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
+import io.github.ganyuke.peoplehunt.core.events.models.MovementSnapshot
+import io.github.ganyuke.peoplehunt.core.events.models.Pos4
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 
 sealed class ReportableEvent {
     // core events for manhunt gameplay
-    data class PlayerMoved(val player: MatchPlayer, val pos: Pos4) : ReportableEvent()
+    data class PlayerMoved(val movementSnapshot: MovementSnapshot) : ReportableEvent()
     data class PlayerRespawned(val player: MatchPlayer, val pos: Pos4) : ReportableEvent()
     data class EntityDied(
         val player: MatchPlayer?,

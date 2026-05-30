@@ -1,35 +1,33 @@
 package io.github.ganyuke.peoplehunt.core.services.reporting
 
-import io.github.ganyuke.peoplehunt.core.Utils.isReally
-import io.github.ganyuke.peoplehunt.core.Utils.reallyContains
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
+import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import io.github.ganyuke.peoplehunt.core.ports.LoggerPort
 import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.MilestoneTracker
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
-import io.github.ganyuke.peoplehunt.core.ports.StructureLocatorPort
+import io.github.ganyuke.peoplehunt.core.utils.isReally
+import io.github.ganyuke.peoplehunt.core.utils.reallyContains
 import kotlin.uuid.Uuid
 
 class ReportingEngine(
     private val outbound: MatchEventBus, // need these two for reporting write errors to operators online
     private val scheduler: SchedulerPort,
-    private val structureLocator: StructureLocatorPort,
     private val logger: LoggerPort,
 ) {
     private val milestoneTracker = MilestoneTracker()
     private val combatStatsTracker = CombatStatsTracker()
 
-    private var currentRunner: MatchEngine.MatchPlayer? = null
-    private var currentHunters: Set<MatchEngine.MatchPlayer> = emptySet()
+    private var currentRunner: MatchPlayer? = null
+    private var currentHunters: Set<MatchPlayer> = emptySet()
 
     private val nameResolver = HashMap<Uuid, String>()
 
     val participantStats
         get() = combatStatsTracker.participantStats.map { pair ->
-            MatchEngine.MatchPlayer(
+            MatchPlayer(
                 pair.first,
                 nameResolver[pair.first] ?: "unknown"
             ) to pair.second
@@ -77,9 +75,8 @@ class ReportingEngine(
             // i.e. the fortress (for blaze rods), bastion (for piglin bartering for pearls)
             // and of course the stronghold to get to the End in the first place
             is ReportableEvent.PlayerMoved -> {
-                if (event.player isReally runner) {
-                    val structureIdentifier = structureLocator.getStructureAt(event.pos)
-                    when (structureIdentifier) {
+                if (event.movementSnapshot.player isReally runner) {
+                    when (event.movementSnapshot.structure) {
                         "minecraft:fortress" -> SpeedrunMilestone.EnteredFortress
                         "minecraft:bastion_remnant" -> SpeedrunMilestone.EnteredBastion
                         "minecraft:stronghold" -> SpeedrunMilestone.EnteredStronghold

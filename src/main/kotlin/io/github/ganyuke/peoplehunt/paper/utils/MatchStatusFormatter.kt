@@ -1,12 +1,12 @@
 package io.github.ganyuke.peoplehunt.paper.utils
 
+import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.reporting.CombatStatsTracker
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.minimessage.MiniMessage
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import kotlin.collections.plusAssign
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlin.time.toJavaInstant
@@ -14,7 +14,7 @@ import kotlin.time.toJavaInstant
 object MatchStatusFormatter {
     private val mm = MiniMessage.miniMessage()
 
-    fun format(status: MatchEngine.MatchState, reportedStats: List<Pair<MatchEngine.MatchPlayer, CombatStatsTracker.PlayerStats>>?): Component = when (status) {
+    fun format(status: MatchEngine.MatchState, reportedStats: List<Pair<MatchPlayer, CombatStatsTracker.PlayerStats>>?): Component = when (status) {
         is MatchEngine.MatchState.Idle -> buildMessage("PEOPLEHUNT STATUS") {
             line("State", "<gray><b>IDLE</b></gray>")
             line("Runner", status.runner?.name ?: "none")
@@ -82,7 +82,7 @@ object MatchStatusFormatter {
             .build()
     }
 
-    private fun Set<MatchEngine.MatchPlayer>.joinNames(): String =
+    private fun Set<MatchPlayer>.joinNames(): String =
         if (isEmpty()) "none" else joinToString(", ") { it.name }
 
     private fun Instant.format(): String =

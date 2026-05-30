@@ -1,10 +1,14 @@
 package io.github.ganyuke.peoplehunt.core
 
-import io.github.ganyuke.peoplehunt.core.Utils.isNotReally
-import io.github.ganyuke.peoplehunt.core.Utils.isReally
-import io.github.ganyuke.peoplehunt.core.Utils.reallyContains
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
+import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
+import io.github.ganyuke.peoplehunt.core.events.models.Pos4
+import io.github.ganyuke.peoplehunt.core.utils.isNotReally
+import io.github.ganyuke.peoplehunt.core.utils.isReally
+import io.github.ganyuke.peoplehunt.core.utils.reallyContains
 import io.github.ganyuke.peoplehunt.core.testutil.player
+import io.github.ganyuke.peoplehunt.core.utils.PEOPLEHUNT_NAMESPACE
+import io.github.ganyuke.peoplehunt.core.utils.PhConfig
+import io.github.ganyuke.peoplehunt.core.utils.formatElapsed
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -15,17 +19,17 @@ import kotlin.uuid.Uuid
 class UtilsTest {
     @Test
     fun formatElapsed_formatsHoursMinutesSeconds() {
-        assertEquals("00:00:00", Utils.formatElapsed(0))
-        assertEquals("00:01:05", Utils.formatElapsed(65))
-        assertEquals("01:02:03", Utils.formatElapsed(3723))
-        assertEquals("02:30:45", Utils.formatElapsed(9045))
+        assertEquals("00:00:00", formatElapsed(0))
+        assertEquals("00:01:05", formatElapsed(65))
+        assertEquals("01:02:03", formatElapsed(3723))
+        assertEquals("02:30:45", formatElapsed(9045))
     }
 
     @Test
     fun isReally_comparesByUuid() {
         val uuid = Uuid.random()
-        val a = MatchEngine.MatchPlayer(uuid, "a")
-        val b = MatchEngine.MatchPlayer(uuid, "b")
+        val a = MatchPlayer(uuid, "a")
+        val b = MatchPlayer(uuid, "b")
         val other = player("c")
 
         assertTrue(a isReally b)
@@ -45,8 +49,8 @@ class UtilsTest {
     @Test
     fun pos4_supportsDataClassSemantics() {
         val world = Uuid.random()
-        val a = Utils.Pos4(1, 2, 3, world)
-        val b = Utils.Pos4(1, 2, 3, world)
+        val a = Pos4(1, 2, 3, world)
+        val b = Pos4(1, 2, 3, world)
         assertEquals(a, b)
         assertEquals(a, a.copy())
         assertEquals(world, a.w)
@@ -55,20 +59,20 @@ class UtilsTest {
 
     @Test
     fun peoplehuntNamespace_isStable() {
-        assertEquals("peoplehunt", Utils.PEOPLEHUNT_NAMESPACE)
+        assertEquals("peoplehunt", PEOPLEHUNT_NAMESPACE)
     }
 
     @Test
     fun phConfig_storesValues() {
-        val config = Utils.PhConfig(globalCompass = true, matchMinutesInterval = 10.minutes, compassTickInterval = 20)
+        val config = PhConfig(globalCompass = true, matchMinutesInterval = 10.minutes, compassTickInterval = 20)
         assertEquals(10.minutes, config.matchMinutesInterval)
     }
 
     @Test
     fun reallyContains_matchesUuidNotInstance() {
         val uuid = Uuid.random()
-        val stored = MatchEngine.MatchPlayer(uuid, "stored")
-        val query = MatchEngine.MatchPlayer(uuid, "query")
+        val stored = MatchPlayer(uuid, "stored")
+        val query = MatchPlayer(uuid, "query")
         assertTrue(setOf(stored) reallyContains query)
         assertFalse(setOf(player("other")) reallyContains query)
     }

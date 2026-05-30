@@ -20,6 +20,7 @@ class CompassServiceTest {
         val runner = player("runner")
         val hunter = player("hunter")
         service.onMatchEvent(MatchEvent.MatchStart(runner, setOf(hunter)))
+        // todo: update PlayerMoved to new MovementSnapshot format
         service.onReportableEvent(ReportableEvent.PlayerMoved(runner, pos(1, 2, 3, Uuid.random())))
         service.onMatchEvent(MatchEvent.CompassTick)
         assertTrue(events.any { it is MatchEvent.CompassUpdate })
@@ -33,6 +34,7 @@ class CompassServiceTest {
         val service = CompassService(bus)
         val runner = player("runner")
         service.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        // todo: update PlayerMoved to new MovementSnapshot format
         service.onReportableEvent(ReportableEvent.PlayerMoved(player("other"), pos()))
         service.onMatchEvent(MatchEvent.CompassTick)
         assertTrue(events.none { it is MatchEvent.CompassUpdate })
@@ -73,6 +75,7 @@ class CompassServiceTest {
         val runner = player("runner")
         val world = Uuid.random()
         service.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        // todo: update PlayerMoved to new MovementSnapshot format
         service.onReportableEvent(ReportableEvent.PlayerMoved(runner, pos(0, 0, 0, world)))
         service.onMatchEvent(MatchEvent.MatchEnd(
             MatchEngine.MatchState.Finished(

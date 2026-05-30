@@ -1,13 +1,13 @@
 package io.github.ganyuke.peoplehunt.paper.command.match
 
 import com.mojang.brigadier.tree.LiteralCommandNode
-import io.github.ganyuke.peoplehunt.core.Utils.PEOPLEHUNT_NAMESPACE
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.MatchState
 import io.github.ganyuke.peoplehunt.core.services.reporting.ReportingEngine
+import io.github.ganyuke.peoplehunt.core.utils.PEOPLEHUNT_NAMESPACE
 import io.github.ganyuke.peoplehunt.paper.items.HunterCompass
 import io.github.ganyuke.peoplehunt.paper.utils.MatchStatusFormatter
-import io.github.ganyuke.peoplehunt.paper.utils.Utils.toMatchPlayer
+import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
 import io.papermc.paper.command.brigadier.CommandSourceStack
 import io.papermc.paper.command.brigadier.Commands
 import net.kyori.adventure.text.Component

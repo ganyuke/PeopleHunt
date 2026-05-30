@@ -1,6 +1,6 @@
 package io.github.ganyuke.peoplehunt.paper.items
 
-import io.github.ganyuke.peoplehunt.core.Utils.PEOPLEHUNT_NAMESPACE
+import io.github.ganyuke.peoplehunt.core.utils.PEOPLEHUNT_NAMESPACE
 import net.kyori.adventure.text.minimessage.MiniMessage
 import org.bukkit.Material
 import org.bukkit.NamespacedKey

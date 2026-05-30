@@ -1,6 +1,6 @@
 package io.github.ganyuke.peoplehunt.core.events
 
-import io.github.ganyuke.peoplehunt.core.Utils
+import io.github.ganyuke.peoplehunt.core.events.models.Pos4
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 import io.github.ganyuke.peoplehunt.core.testutil.player
@@ -48,6 +48,7 @@ class CoreEventsTest {
             SpeedrunMilestone.AcquisitionMethod.CRAFTED,
         )
         val events: List<ReportableEvent> = listOf(
+            // todo: update PlayerMoved to new snapshot format
             ReportableEvent.PlayerMoved(p, location),
             ReportableEvent.PlayerRespawned(p, location),
             ReportableEvent.EntityDied(p, "minecraft:zombie", location, p, "minecraft:skeleton"),
@@ -58,7 +59,7 @@ class CoreEventsTest {
             ReportableEvent.PlayerThrewItem(p, "minecraft:ender_eye"),
             ReportableEvent.PlayerFilledBucket(p, "water"),
             ReportableEvent.EndCrystalDestroyed(p),
-            ReportableEvent.EndPortalCompleted(Utils.Pos4(1, 2, 3, Uuid.random())),
+            ReportableEvent.EndPortalCompleted(Pos4(1, 2, 3, Uuid.random())),
         )
         assertEquals(11, events.size)
         assertNotEquals(events[0], events[1])
@@ -68,7 +69,8 @@ class CoreEventsTest {
             event.hashCode()
             when (event) {
                 is ReportableEvent.PlayerMoved -> {
-                    assertEquals(p, event.player)
+                    assertEquals(p, event.movementSnapshot.player)
+                    // todo: update PlayerMoved to new snapshot format
                     event.copy(player = p)
                 }
                 is ReportableEvent.PlayerAcquiredItem -> event.copy(method = SpeedrunMilestone.AcquisitionMethod.TRADED)

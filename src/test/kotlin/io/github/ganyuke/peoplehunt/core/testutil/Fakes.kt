@@ -1,12 +1,11 @@
 package io.github.ganyuke.peoplehunt.core.testutil
 
-import io.github.ganyuke.peoplehunt.core.Utils
-import io.github.ganyuke.peoplehunt.core.Utils.Pos4
+import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
+import io.github.ganyuke.peoplehunt.core.events.models.Pos4
 import io.github.ganyuke.peoplehunt.core.ports.LoggerPort
 import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
-import io.github.ganyuke.peoplehunt.core.ports.StructureLocatorPort
 import io.github.ganyuke.peoplehunt.core.ports.TaskHandle
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
+import io.github.ganyuke.peoplehunt.core.utils.PhConfig
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.uuid.Uuid
@@ -15,13 +14,13 @@ fun testPhConfig(
     globalCompass: Boolean = true,
     matchMinutesInterval: Duration = Duration.ZERO,
     compassTickInterval: Long = 20L,
-) = Utils.PhConfig(globalCompass, matchMinutesInterval, compassTickInterval)
+) = PhConfig(globalCompass, matchMinutesInterval, compassTickInterval)
 
 fun testPhConfigWithInterval(minutes: Long = 1L) =
     testPhConfig(matchMinutesInterval = minutes.minutes)
 
 fun player(name: String = "player", uuid: Uuid = Uuid.random()) =
-    MatchEngine.MatchPlayer(uuid, name)
+    MatchPlayer(uuid, name)
 
 fun pos(x: Int = 0, y: Int = 64, z: Int = 0, world: Uuid = Uuid.random()) =
     Pos4(x, y, z, world)
@@ -84,8 +83,4 @@ class FakeLogger : LoggerPort {
     override fun error(message: String, cause: Throwable?) {
         errorMessages += message to cause
     }
-}
-
-class FakeStructureLocator(private val structures: Map<Pos4, String?> = emptyMap()) : StructureLocatorPort {
-    override fun getStructureAt(pos: Pos4): String? = structures[pos]
 }

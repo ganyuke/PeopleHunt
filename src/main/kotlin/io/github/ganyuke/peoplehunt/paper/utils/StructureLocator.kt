@@ -1,14 +1,11 @@
-package io.github.ganyuke.peoplehunt.paper.adapters
+package io.github.ganyuke.peoplehunt.paper.utils
 
-import io.github.ganyuke.peoplehunt.core.Utils
-import io.github.ganyuke.peoplehunt.core.ports.StructureLocatorPort
-import io.github.ganyuke.peoplehunt.paper.utils.Utils.toLocation
 import io.papermc.paper.registry.RegistryAccess
 import io.papermc.paper.registry.RegistryKey
 import org.bukkit.Location
 import org.bukkit.generator.structure.Structure
 
-class StructureLocatorAdapter : StructureLocatorPort {
+object StructureLocator {
     private val structureRegistry = RegistryAccess.registryAccess().getRegistry(RegistryKey.STRUCTURE)
 
     // should turn the ugly enums into stuff like `minecraft:fortress`
@@ -24,6 +21,5 @@ class StructureLocatorAdapter : StructureLocatorPort {
             }
         }?.structure?.let(::getStructureKeyString)
 
-    // can't really do anything about a bad world so just return null if it's bad
-    override fun getStructureAt(pos: Utils.Pos4): String? = pos.toLocation()?.let(::getCurrentStructure)
+    fun getStructureAt(pos: Location): String? = getCurrentStructure(pos)
 }

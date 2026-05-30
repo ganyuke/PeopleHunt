@@ -3,6 +3,7 @@ package io.github.ganyuke.peoplehunt.core.testutil
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.reporting.ReportingEngine
+import io.github.ganyuke.peoplehunt.core.utils.PhConfig
 
 data class MatchEngineFixture(
     val engine: MatchEngine,
@@ -13,7 +14,7 @@ data class MatchEngineFixture(
 fun matchEngineFixture(
     scheduler: FakeScheduler = FakeScheduler(),
     bus: MatchEventBus = MatchEventBus(),
-    config: io.github.ganyuke.peoplehunt.core.Utils.PhConfig = testPhConfig(),
+    config: PhConfig = testPhConfig(),
 ) = MatchEngineFixture(MatchEngine(scheduler, bus, config), scheduler, bus)
 
 data class ReportingEngineFixture(
@@ -21,12 +22,10 @@ data class ReportingEngineFixture(
     val scheduler: FakeScheduler,
     val bus: MatchEventBus,
     val logger: FakeLogger,
-    val structures: FakeStructureLocator,
 )
 
 fun reportingEngineFixture(
     scheduler: FakeScheduler = FakeScheduler(),
     bus: MatchEventBus = MatchEventBus(),
-    logger: FakeLogger = FakeLogger(),
-    structures: FakeStructureLocator = FakeStructureLocator(),
-) = ReportingEngineFixture(ReportingEngine(bus, scheduler, structures, logger), scheduler, bus, logger, structures)
+    logger: FakeLogger = FakeLogger()
+) = ReportingEngineFixture(ReportingEngine(bus, scheduler, logger), scheduler, bus, logger)

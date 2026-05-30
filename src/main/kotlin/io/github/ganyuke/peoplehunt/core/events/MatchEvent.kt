@@ -1,11 +1,12 @@
 package io.github.ganyuke.peoplehunt.core.events
 
-import kotlin.uuid.Uuid
-import io.github.ganyuke.peoplehunt.core.Utils.Pos4
+import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
+import io.github.ganyuke.peoplehunt.core.events.models.Pos4
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
+import kotlin.uuid.Uuid
 
 sealed class MatchEvent {
-    data class MatchStart(val runner: MatchEngine.MatchPlayer, val hunters: Set<MatchEngine.MatchPlayer>) : MatchEvent()
+    data class MatchStart(val runner: MatchPlayer, val hunters: Set<MatchPlayer>) : MatchEvent()
     data class MatchEnd(val result: MatchEngine.MatchState.Finished) : MatchEvent()
     object CompassTick : MatchEvent()
     data class GiveHuntersCompass(val huntersUuids: Set<Uuid>) : MatchEvent()

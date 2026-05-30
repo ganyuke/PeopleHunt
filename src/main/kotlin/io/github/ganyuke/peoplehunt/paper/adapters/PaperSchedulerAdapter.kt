@@ -1,8 +1,8 @@
 package io.github.ganyuke.peoplehunt.paper.adapters
 
-import org.bukkit.plugin.java.JavaPlugin
 import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
 import io.github.ganyuke.peoplehunt.core.ports.TaskHandle
+import org.bukkit.plugin.java.JavaPlugin
 
 class PaperSchedulerAdapter(private val plugin: JavaPlugin) : SchedulerPort {
     override fun everyTicks(interval: Long, delay: Long, task: () -> Unit): TaskHandle {

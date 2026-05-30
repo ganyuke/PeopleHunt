@@ -17,6 +17,7 @@ class ReportingEngineTest {
     fun matchStartAndEnd_resetParticipants() {
         val location = pos()
         val fixture = reportingEngineFixture(
+            // todo: structures no longer resolved in the core; structure is just a String on the MovementSnapshot
             structures = FakeStructureLocator(mapOf(location to "minecraft:fortress")),
         )
         val runner = player("runner")
@@ -33,6 +34,7 @@ class ReportingEngineTest {
                 ),
             ),
         )
+        // todo: update PlayerMoved to new MovementSnapshot format
         fixture.engine.onReportableEvent(ReportableEvent.PlayerMoved(runner, location))
         assertTrue(fixture.logger.infoMessages.none { it.contains("Milestone Unlocked") })
     }
@@ -41,10 +43,12 @@ class ReportingEngineTest {
     fun runnerEntersFortress_logsMilestone() {
         val location = pos()
         val fixture = reportingEngineFixture(
+            // todo: structures no longer resolved in the core; structure is just a String on the MovementSnapshot
             structures = FakeStructureLocator(mapOf(location to "minecraft:fortress")),
         )
         val runner = player("runner")
         fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        // todo: update PlayerMoved to new MovementSnapshot format
         fixture.engine.onReportableEvent(ReportableEvent.PlayerMoved(runner, location))
         assertTrue(fixture.logger.infoMessages.any { it.contains("Milestone Unlocked") })
     }
@@ -55,6 +59,7 @@ class ReportingEngineTest {
         val bastionPos = pos(2, 0, 0)
         val strongholdPos = pos(3, 0, 0)
         val fixture = reportingEngineFixture(
+            // todo: structures no longer resolved in the core; structure is just a String on the MovementSnapshot
             structures = FakeStructureLocator(
                 mapOf(
                     fortressPos to "minecraft:fortress",
@@ -65,6 +70,7 @@ class ReportingEngineTest {
         )
         val runner = player("runner")
         fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        // todo: update PlayerMoved to new MovementSnapshot format x3
         fixture.engine.onReportableEvent(ReportableEvent.PlayerMoved(runner, fortressPos))
         fixture.engine.onReportableEvent(ReportableEvent.PlayerMoved(runner, bastionPos))
         fixture.engine.onReportableEvent(ReportableEvent.PlayerMoved(runner, strongholdPos))
@@ -75,6 +81,7 @@ class ReportingEngineTest {
     fun nonRunnerMovement_ignored() {
         val location = pos()
         val fixture = reportingEngineFixture(
+            // todo: structures no longer resolved in the core; structure is just a String on the MovementSnapshot
             structures = FakeStructureLocator(mapOf(location to "minecraft:fortress")),
         )
         val runner = player("runner")
@@ -152,10 +159,12 @@ class ReportingEngineTest {
     fun unknownStructure_doesNotUnlockMilestone() {
         val location = pos()
         val fixture = reportingEngineFixture(
+            // todo: structures no longer resolved in the core; structure is just a String on the MovementSnapshot
             structures = FakeStructureLocator(mapOf(location to "minecraft:village")),
         )
         val runner = player("runner")
         fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        // todo: update PlayerMoved to new MovementSnapshot format
         fixture.engine.onReportableEvent(ReportableEvent.PlayerMoved(runner, location))
         assertTrue(fixture.logger.infoMessages.none { it.contains("Milestone Unlocked") })
     }

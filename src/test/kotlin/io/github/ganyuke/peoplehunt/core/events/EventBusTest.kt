@@ -28,6 +28,7 @@ class EventBusTest {
         val listener: ReportableEventBus.ReportableEventListener = { received += it }
         bus.register(listener)
         val runner = player("runner")
+        // todo: update PlayerMoved to new snapshot format
         val event = ReportableEvent.PlayerMoved(runner, pos())
         bus.post(event)
         assertEquals(1, received.size)

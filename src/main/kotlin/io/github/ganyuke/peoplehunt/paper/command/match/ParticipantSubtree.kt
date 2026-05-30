@@ -2,15 +2,14 @@ package io.github.ganyuke.peoplehunt.paper.command.match
 
 import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.builder.LiteralArgumentBuilder
+import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.FailureReason
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.MatchPlayer
-import io.github.ganyuke.peoplehunt.paper.utils.Utils.toMatchPlayer
+import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
 import io.papermc.paper.command.brigadier.CommandSourceStack
 import io.papermc.paper.command.brigadier.Commands
 import io.papermc.paper.command.brigadier.argument.ArgumentTypes
 import io.papermc.paper.command.brigadier.argument.resolvers.selector.PlayerSelectorArgumentResolver
-import kotlin.collections.forEach
 import kotlin.uuid.toKotlinUuid
 
 object ParticipantSubtree {

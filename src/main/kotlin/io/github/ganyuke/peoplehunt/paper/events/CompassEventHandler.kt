@@ -1,9 +1,9 @@
-package io.github.ganyuke.peoplehunt.paper.adapters
+package io.github.ganyuke.peoplehunt.paper.events
 
-import io.github.ganyuke.peoplehunt.core.Utils
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
+import io.github.ganyuke.peoplehunt.core.utils.PhConfig
 import io.github.ganyuke.peoplehunt.paper.items.HunterCompass
-import io.github.ganyuke.peoplehunt.paper.utils.Utils.toLocation
+import io.github.ganyuke.peoplehunt.paper.utils.toLocation
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.Material
@@ -13,8 +13,7 @@ import org.bukkit.inventory.meta.CompassMeta
 import kotlin.uuid.Uuid
 import kotlin.uuid.toKotlinUuid
 
-
-class PaperCompassAdapter(config: Utils.PhConfig) {
+class CompassEventHandler(config: PhConfig) {
     private val globalCompass = config.globalCompass
 
     // unfortunately, this method will cause the compass to bob when in a player's hand
