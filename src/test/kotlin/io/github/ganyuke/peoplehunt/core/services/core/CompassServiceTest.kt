@@ -104,7 +104,7 @@ class CompassServiceTest {
         val bus = MatchEventBus()
         val service = CompassService(bus)
         service.onReportableEvent(
-            ReportableEvent.PlayerDamagedEntity(player("p"), 1.0),
+            ReportableEvent.PlayerDamagedEntity(player("p"), "minecraft:zombie",1.0),
         )
     }
 

@@ -1,5 +1,6 @@
 package io.github.ganyuke.peoplehunt.core.events
 
+import io.github.ganyuke.peoplehunt.core.Utils
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 import io.github.ganyuke.peoplehunt.core.testutil.player
@@ -50,14 +51,14 @@ class CoreEventsTest {
             ReportableEvent.PlayerMoved(p, location),
             ReportableEvent.PlayerRespawned(p, location),
             ReportableEvent.EntityDied(p, "minecraft:zombie", location, p, "minecraft:skeleton"),
-            ReportableEvent.PlayerDamagedEntity(p, 2.5),
+            ReportableEvent.PlayerDamagedEntity(p, "minecraft:zombie", 2.5),
             ReportableEvent.PlayerDamagedByEntity(p, 1.0),
             ReportableEvent.PlayerAcquiredItem(p, item.item, item.method),
             ReportableEvent.PlayerChangedDimension(p, "overworld", "nether"),
             ReportableEvent.PlayerThrewItem(p, "minecraft:ender_eye"),
             ReportableEvent.PlayerFilledBucket(p, "water"),
             ReportableEvent.EndCrystalDestroyed(p),
-            ReportableEvent.EndPortalCompleted(p),
+            ReportableEvent.EndPortalCompleted(Utils.Pos4(1, 2, 3, Uuid.random())),
         )
         assertEquals(11, events.size)
         assertNotEquals(events[0], events[1])

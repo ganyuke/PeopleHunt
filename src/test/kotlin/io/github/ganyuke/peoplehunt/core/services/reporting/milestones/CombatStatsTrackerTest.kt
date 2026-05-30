@@ -13,18 +13,18 @@ class CombatStatsTrackerTest {
         val id = Uuid.random()
         tracker.recordKill(id)
         tracker.recordDeath(id)
-        tracker.recordDamageDealt(id, 10)
-        tracker.recordDamageTaken(id, 4)
+        tracker.recordDamageDealt(id, 10.0)
+        tracker.recordDamageTaken(id, 4.0)
         val stats = tracker.participantStats.single().second
         assertEquals(1, stats.kills)
         assertEquals(1, stats.deaths)
-        assertEquals(10, stats.damageDealt)
-        assertEquals(4, stats.damageTaken)
+        assertEquals(10.0, stats.damageDealt)
+        assertEquals(4.0, stats.damageTaken)
     }
 
     @Test
     fun playerStats_dataClassSemantics() {
-        val stats = CombatStatsTracker.PlayerStats(2, 3, 40, 50)
+        val stats = CombatStatsTracker.PlayerStats(2, 3, 40.0, 50.0)
         assertEquals(stats, stats.copy())
         assertEquals(2, stats.kills)
         stats.hashCode()

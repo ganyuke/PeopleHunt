@@ -143,7 +143,7 @@ class ReportingEngineTest {
         val runner = player("runner")
         fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
         fixture.engine.onReportableEvent(
-            ReportableEvent.PlayerDamagedEntity(runner, 3.0),
+            ReportableEvent.PlayerDamagedEntity(runner, "minecraft:zombie",3.0),
         )
         fixture.engine.onMatchEvent(MatchEvent.CompassTick)
     }
