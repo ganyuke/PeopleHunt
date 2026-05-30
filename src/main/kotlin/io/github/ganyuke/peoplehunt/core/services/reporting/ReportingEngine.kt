@@ -11,12 +11,12 @@ import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.CombatStatsTracker
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.MilestoneTracker
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
-import io.github.ganyuke.peoplehunt.paper.adapters.StructureLocatorAdapter
+import io.github.ganyuke.peoplehunt.core.ports.StructureLocatorPort
 
 class ReportingEngine(
     private val outbound: MatchEventBus, // need these two for reporting write errors to operators online
     private val scheduler: SchedulerPort,
-    private val structureLocatorAdapter: StructureLocatorAdapter,
+    private val structureLocator: StructureLocatorPort,
     private val logger: LoggerPort,
 ) {
     data class ParticipantStats(val player: MatchEngine.MatchPlayer, val kills: Int, val deaths: Int)
@@ -29,7 +29,7 @@ class ReportingEngine(
 
     // will be called by async SQL thread so need to run this on the main thread
     // everything else in this engine runs on the main Bukkit thread
-    private fun reportError(message: String) {
+    internal fun reportError(message: String) {
         scheduler.runOnMainThread {
             logger.error("ReportingEngine encountered an operational error: $message")
             outbound.post(MatchEvent.OperatorNotification("Error occured in reporting engine: $message"))
@@ -41,7 +41,7 @@ class ReportingEngine(
             is ReportableEvent.EntityDied -> handleEntityDied(event)
             is ReportableEvent.PlayerMoved -> {
                 if (event.player isReally currentRunner) {
-                    val structureIdentifier = structureLocatorAdapter.getStructureAt(event.pos)
+                    val structureIdentifier = structureLocator.getStructureAt(event.pos)
                     logger.info(structureIdentifier.toString())
                     val newlyUnlocked = when (structureIdentifier) {
                         "minecraft:fortress" -> milestoneTracker.trackMilestone(SpeedrunMilestone.EnteredFortress)
