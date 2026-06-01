@@ -3,6 +3,7 @@ package io.github.ganyuke.peoplehunt.core.services.core
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
+import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
 import io.github.ganyuke.peoplehunt.core.ports.TaskHandle
@@ -100,16 +101,16 @@ class MatchEngine(
         when (val currentState = currentStatus) {
             // start match when runner moves and match was primed
             is MatchState.Primed -> {
-                if (event is ReportableEvent.PlayerMoved && event.movementSnapshot.player isReally currentState.runner)
+                if (event.payload is ReportablePayload.PlayerMoved && event.payload.player isReally currentState.runner)
                     startMatch(currentState.runner, currentState.hunters)
             }
 
             is MatchState.Active -> {
-                if (event is ReportableEvent.EntityDied) when {
-                    event.player isReally currentState.runner ->
+                if (event.payload is ReportablePayload.EntityDied) when {
+                    event.payload.player isReally currentState.runner ->
                         endMatch(currentState, MatchOutcome.HUNTER_VICTORY)
 
-                    event.entityIdentifier == "minecraft:ender_dragon" ->
+                    event.payload.entityIdentifier == "minecraft:ender_dragon" ->
                         endMatch(currentState, MatchOutcome.RUNNER_VICTORY)
                 }
             }

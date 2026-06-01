@@ -2,6 +2,8 @@ package io.github.ganyuke.peoplehunt.paper.listeners
 
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
+import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
+import io.github.ganyuke.peoplehunt.paper.utils.post
 import io.github.ganyuke.peoplehunt.paper.utils.toPos4
 import org.bukkit.Location
 
@@ -41,7 +43,7 @@ class EndPortalListener(private val inbound: ReportableEventBus) : Listener {
         // verify it's a valid end portal (also checks for completion)
         val center = getCompleteCenter(clickedBlock) ?: return
 
-        inbound.post(ReportableEvent.EndPortalCompleted(center.toPos4()))
+        inbound.post(ReportablePayload.EndPortalCompleted(center.toPos4()))
     }
 
     /**

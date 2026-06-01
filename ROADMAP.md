@@ -90,12 +90,19 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 * [ ] Record distinct teleportation causes (Ender Pearl, commands, etc.).
 * [ ] Handle discontinuities in path + filter out minor teleport noises (e.g. vanilla push-out mechanics).
 * [x] Record basic movement states (swimming, flying, falling, walking, running) and active game mode.
-* [ ] Poll health, absorption, hunger, saturation, breath levels, XP levels.
+* [ ] Record events for changes in health, absorption, hunger, saturation, breath levels, XP levels.
 
 ### Combat and damage tracking
 
 * [ ] Record exact damage and attribute cause (explosions, fall damage, lava, etc.) back to a specific player or entity.
 * [ ] Record projectile paths, entity types, and resolve projectile owner.
+
+## Implementation details
+
+* Structure detection was moved to check for ALL players on block movement. A little expensive maybe.
+* Pathing is no longer polling-based. All paths are snapshotted from player movement. Might turn out to be a really bad idea later on when I need to write this data.
+* Need to detect discontinuities with PlayerTeleportEvent.
+* Vitals will be derived after the fact via discrete events (health regenerated, damage taken, etc.)
 
 ---
 

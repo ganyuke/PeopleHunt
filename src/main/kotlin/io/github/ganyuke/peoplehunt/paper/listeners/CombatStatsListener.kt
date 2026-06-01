@@ -2,6 +2,8 @@ package io.github.ganyuke.peoplehunt.paper.listeners
 
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
+import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
+import io.github.ganyuke.peoplehunt.paper.utils.post
 import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
 import org.bukkit.entity.Damageable
 import org.bukkit.entity.Player
@@ -29,7 +31,7 @@ class CombatStatsListener(private val inbound: ReportableEventBus) : Listener {
             } else null
 
             inbound.post(
-                ReportableEvent.PlayerDamagedEntity(
+                ReportablePayload.PlayerDamagedEntity(
                     player = damager.toMatchPlayer(),
                     entityIdentifier = entityIdentifier,
                     amount = event.finalDamage,
@@ -40,10 +42,16 @@ class CombatStatsListener(private val inbound: ReportableEventBus) : Listener {
 
         // scenario B: player takes damage
         if (victim is Player) {
+            val remainingHealth =
+                // apparently the health doesn't update until after so I guess we need to manually calculate
+                (victim.health - event.finalDamage).coerceAtLeast(0.0)
+
             inbound.post(
-                ReportableEvent.PlayerDamagedByEntity(
+                ReportablePayload.PlayerDamagedByEntity(
                     player = victim.toMatchPlayer(),
-                    amount = event.finalDamage
+                    entityIdentifier = event.damager.type.key.toString(),
+                    amount = event.finalDamage,
+                    remainingHealth = remainingHealth
                 )
             )
         }

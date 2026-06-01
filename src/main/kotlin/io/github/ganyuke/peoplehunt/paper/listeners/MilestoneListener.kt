@@ -1,8 +1,9 @@
 package io.github.ganyuke.peoplehunt.paper.listeners
 
-import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
+import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
+import io.github.ganyuke.peoplehunt.paper.utils.post
 import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
 import io.papermc.paper.event.player.PlayerTradeEvent
 import org.bukkit.Material
@@ -48,7 +49,7 @@ class MilestoneListener(private val inbound: ReportableEventBus) : Listener {
         val item = event.item.itemStack.type.toMilestoneItem() ?: return
 
         inbound.post(
-            ReportableEvent.PlayerAcquiredItem(
+            ReportablePayload.PlayerAcquiredItem(
                 player = player.toMatchPlayer(),
                 item = item,
                 method = SpeedrunMilestone.AcquisitionMethod.PICKED_UP
@@ -62,7 +63,7 @@ class MilestoneListener(private val inbound: ReportableEventBus) : Listener {
         val item = event.recipe.result.type.toMilestoneItem() ?: return
 
         inbound.post(
-            ReportableEvent.PlayerAcquiredItem(
+            ReportablePayload.PlayerAcquiredItem(
                 player = player.toMatchPlayer(),
                 item = item,
                 method = SpeedrunMilestone.AcquisitionMethod.CRAFTED
@@ -76,7 +77,7 @@ class MilestoneListener(private val inbound: ReportableEventBus) : Listener {
         val item = event.trade.result.type.toMilestoneItem() ?: return
 
         inbound.post(
-            ReportableEvent.PlayerAcquiredItem(
+            ReportablePayload.PlayerAcquiredItem(
                 player = player.toMatchPlayer(),
                 item = item,
                 method = SpeedrunMilestone.AcquisitionMethod.TRADED
@@ -92,7 +93,7 @@ class MilestoneListener(private val inbound: ReportableEventBus) : Listener {
     fun onDimensionChange(event: PlayerChangedWorldEvent) {
         val player = event.player
         inbound.post(
-            ReportableEvent.PlayerChangedDimension(
+            ReportablePayload.PlayerChangedDimension(
                 player = player.toMatchPlayer(),
                 from = event.from.key.toString(),
                 to = player.world.key.toString()
@@ -115,7 +116,7 @@ class MilestoneListener(private val inbound: ReportableEventBus) : Listener {
         }?.minByOrNull { it.location.distanceSquared(spawnLoc) }
 
         thrower?.let {
-            inbound.post(ReportableEvent.PlayerThrewEnderEye(it.toMatchPlayer()))
+            inbound.post(ReportablePayload.PlayerThrewEnderEye(it.toMatchPlayer()))
         }
     }
 
@@ -128,7 +129,7 @@ class MilestoneListener(private val inbound: ReportableEventBus) : Listener {
         }
 
         inbound.post(
-            ReportableEvent.PlayerFilledBucket(
+            ReportablePayload.PlayerFilledBucket(
                 player = event.player.toMatchPlayer(),
                 fluid = fluidString
             )
@@ -141,7 +142,7 @@ class MilestoneListener(private val inbound: ReportableEventBus) : Listener {
         val killer = event.damager as? Player
 
         inbound.post(
-            ReportableEvent.EndCrystalDestroyed(
+            ReportablePayload.EndCrystalDestroyed(
                 player = killer?.toMatchPlayer()
             )
         )

@@ -16,45 +16,65 @@ import io.github.ganyuke.peoplehunt.paper.listeners.EndPortalListener
 import io.github.ganyuke.peoplehunt.paper.listeners.MilestoneListener
 import io.github.ganyuke.peoplehunt.paper.utils.ConfigLoader
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
+import org.bukkit.event.Listener
 import org.bukkit.plugin.java.JavaPlugin
 
 class PeopleHunt : JavaPlugin() {
     private lateinit var matchEngine: MatchEngine
+    private val inbound = ReportableEventBus()
+    private val outbound = MatchEventBus()
+
+    private fun registerListeners(listeners: List<Listener>) {
+        listeners.forEach { server.pluginManager.registerEvents(it, this) }
+    }
+
+    private fun registerInbound(listeners: List<ReportableEventBus.ReportableEventListener>) {
+        listeners.forEach(inbound::register)
+    }
+
+    private fun registerOutbound(listeners: List<MatchEventBus.MatchEventListener>) {
+        listeners.forEach(outbound::register)
+    }
 
     override fun onEnable() {
         saveDefaultConfig()
 
         val phConfig = ConfigLoader.load(this.logger, this.config)
 
-        val inbound = ReportableEventBus()
-        val outbound = MatchEventBus()
 
-        val compassAdapter = CompassEventHandler(phConfig)
+        val compassEventHandler = CompassEventHandler(phConfig)
         val schedulerAdapter = PaperSchedulerAdapter(this)
         val loggerAdapter = PaperLoggerAdapter(this)
 
         matchEngine = MatchEngine(schedulerAdapter, outbound, phConfig)
         val reportingEngine = ReportingEngine(outbound, schedulerAdapter, loggerAdapter)
 
-        val paperServerAdapter = BroadcastEventHandler(reportingEngine)
+        val broadcastEventHandler = BroadcastEventHandler(reportingEngine)
         
         val compassService = CompassService(outbound)
 
         // register listeners on bus that match and compass react to
-        inbound.register(matchEngine::onEvent)
-        inbound.register(compassService::onReportableEvent)
-        inbound.register(reportingEngine::onReportableEvent)
+        registerInbound(listOf(
+            matchEngine::onEvent,
+            compassService::onReportableEvent,
+            reportingEngine::onReportableEvent
+        ))
 
         // register listeners on bus that game must react to
-        outbound.register(compassService::onMatchEvent)
-        outbound.register(compassAdapter::onMatchEvent)
-        outbound.register(paperServerAdapter::onMatchEvent)
-        outbound.register(reportingEngine::onMatchEvent)
+        registerOutbound(listOf(
+            compassService::onMatchEvent,
+            compassEventHandler::onMatchEvent,
+            broadcastEventHandler::onMatchEvent,
+            reportingEngine::onMatchEvent
+        ))
 
-        server.pluginManager.registerEvents(CoreListener(inbound), this)
-        server.pluginManager.registerEvents(MilestoneListener(inbound), this)
-        server.pluginManager.registerEvents(CombatStatsListener(inbound), this)
-        server.pluginManager.registerEvents(EndPortalListener(inbound), this)
+        // register Bukkit listeners
+        registerListeners(listOf(
+            CoreListener(inbound),
+            MilestoneListener(inbound),
+            CombatStatsListener(inbound),
+            EndPortalListener(inbound)
+        ))
 
         val manager = this.lifecycleManager
 

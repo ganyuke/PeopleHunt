@@ -3,6 +3,7 @@ package io.github.ganyuke.peoplehunt.core.services.core
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
+import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.core.events.models.Pos4
 import kotlin.uuid.Uuid
 
@@ -13,19 +14,19 @@ class CompassService(private val outbound: MatchEventBus) {
     private val runnerPosInDim: MutableMap<Uuid, Pos4> = mutableMapOf()
 
     fun onReportableEvent(event: ReportableEvent) : Unit =
-        when (event) {
+        when (val payload = event.payload) {
             // feature: update tracked position on runner movement in dimension
-            is ReportableEvent.PlayerMoved -> {
-                if (event.movementSnapshot.player.uuid != runnerUuid) return
+            is ReportablePayload.PlayerMoved -> {
+                if (payload.player.uuid != runnerUuid) return
 
-                runnerDim = event.movementSnapshot.pos.w
-                runnerPosInDim[event.movementSnapshot.pos.w] = event.movementSnapshot.pos
+                runnerDim = payload.pos.w
+                runnerPosInDim[payload.pos.w] = payload.pos
             }
 
             // feature: give compass on hunter respawn
-            is ReportableEvent.PlayerRespawned -> {
-                if (event.player.uuid !in huntersUuid) return
-                outbound.post(MatchEvent.GiveHuntersCompass(setOf(event.player.uuid)))
+            is ReportablePayload.PlayerRespawned -> {
+                if (payload.player.uuid !in huntersUuid) return
+                outbound.post(MatchEvent.GiveHuntersCompass(setOf(payload.player.uuid)))
             }
 
             else -> {}

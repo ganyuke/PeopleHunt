@@ -1,13 +1,17 @@
 package io.github.ganyuke.peoplehunt.paper.utils
 
+import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
+import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
+import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
-import io.github.ganyuke.peoplehunt.core.events.models.MovementSnapshot
 import io.github.ganyuke.peoplehunt.core.events.models.Pos4
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerMoveEvent
-import kotlin.time.Clock
+import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.PlayerInventory
+import java.util.HexFormat
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
@@ -27,8 +31,7 @@ fun Player.toMatchPlayer() = MatchPlayer(
     name = this.name
 )
 
-fun PlayerMoveEvent.toSnapshot(structure: String?) = MovementSnapshot(
-    Bukkit.getServer().currentTick,
+fun PlayerMoveEvent.toSnapshot() = ReportablePayload.PlayerMoved(
     this.player.toMatchPlayer(),
     this.to.toPos4(),
     this.to.yaw,
@@ -37,8 +40,17 @@ fun PlayerMoveEvent.toSnapshot(structure: String?) = MovementSnapshot(
     this.player.isSneaking,
     this.player.isFlying,
     this.player.isSwimming,
-    structure,
-    Clock.System.now(),
+    this.player.isGliding
 )
 
-fun PlayerMoveEvent.toSnapshot() = this.toSnapshot(null)
+fun ReportableEventBus.post(payload: ReportablePayload) = this.post(
+    ReportableEvent(
+        tick = Bukkit.getServer().currentTick,
+        payload = payload
+    )
+)
+
+fun snapshot(item: ItemStack, inventory: PlayerInventory) {
+    inventory = inventory.viewers
+    item.serializeAsBytes().toHexString()
+}
