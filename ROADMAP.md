@@ -38,7 +38,7 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 ### Implementation details
 
 * Participants stats currently not collected; Finished match `/ph status` does not show stats currently.
-* Exepected runner to be a single player only.
+* Expected runner to be a single player only.
 * No mutation of runners, hunters, or configuration mid-match.
 * Hunter compasses always given on respawn. Compass not filtered from death drops.
 
@@ -73,10 +73,12 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 
 ### Implementation details
 
-* Structure events are implemented directly in the ReportingEngine; they piggy-back off the PlayerMoved event and lookup the structure they are standing in. Requires an adapter for the structure lookup. Not sure if this'll cause problems if there are easier ways to do it in something like Fabric.
+* Structure enter/exit for milestones uses `StructureListener` + `StructureLocator.getStructureAt` on `PlayerMoveEvent` when `hasChangedBlock()` (per player, not only runner).
+* `ReportingEngine` consumes `PlayerEnteredStructure` / item / dimension / dragon HP milestones from the event bus.
 * Left the Nether is dependent on obtaining the Blaze Rod achievement, since otherwise leaving the Nether at all would award this.
 * Eye of Ender thrown detection is a bit of a hack. Will also fire if another player throws an eye while standing near the runner.
 * Ender Portal completion is a bit of a hack relying on checking if the placed Eye of Ender will complete the End Portal. Had to steal [a bit of code from Cooperative End Access](https://github.com/ganyuke/CooperativeEndAccess/blob/main/src/main/java/io/github/ganyuke/cooperativeEndAccess/portal/PortalListener.java) to get this to work.
+* `EndCrystalDestroyed` is emitted from `MilestoneListener` (attribution optional).
 
 ---
 
@@ -86,23 +88,26 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 
 ### Core path recorder
 
-* [x] Capture player coordinates + world/dimension
-* [ ] Record distinct teleportation causes (Ender Pearl, commands, etc.).
-* [ ] Handle discontinuities in path + filter out minor teleport noises (e.g. vanilla push-out mechanics).
-* [x] Record basic movement states (swimming, flying, falling, walking, running) and active game mode.
-* [ ] Record events for changes in health, absorption, hunger, saturation, breath levels, XP levels.
+* [x] Capture player coordinates + world/dimension (`PlayerMoved` on every move via `CoreListener`).
+* [x] Record distinct teleportation causes (Ender Pearl, chorus, commands, portals, etc.) — `TeleportListener` → `TeleportSnapshot` + `TeleportCause`; filters `UNKNOWN` teleports under 4 blocks.
+* [ ] Handle discontinuities in path + filter out minor teleport noises beyond the teleport listener threshold (e.g. remaining vanilla push-out cases).
+* [x] Record basic movement states on move (`sprinting`, `sneaking`, `flying`, `swimming`, `gliding` on `PlayerMoved`).
+* [x] Richer movement/environment state on match ticks via `PlayerSnapshotChanged` (`MovementFlags`, `EnvironmentFlags`, game mode, vehicle, potion list on snapshot).
+* [x] Record vitals during active matches via `PlayerSnapshotPoller` → `PlayerSnapshotChanged` (`Vitals`: health, food, air, XP, absorption, etc.) every tick while match is active.
 
 ### Combat and damage tracking
 
-* [ ] Record exact damage and attribute cause (explosions, fall damage, lava, etc.) back to a specific player or entity.
-* [ ] Record projectile paths, entity types, and resolve projectile owner.
+* [x] Record player ↔ entity damage amounts (`CombatStatsListener`, `PlayerDamagedEntity` / `PlayerDamagedByEntity`).
+* [x] Record player deaths and killer attribution (`PlayerDied` / `EntityDied`, `KillCause`).
+* [ ] Record environmental damage with typed cause (`PlayerDamagedByEnvironment`).
+* [ ] Record projectile launch and hit (`ProjectileLaunched`, `ProjectileHit`).
 
-## Implementation details
+### Implementation details
 
 * Structure detection was moved to check for ALL players on block movement. A little expensive maybe.
 * Pathing is no longer polling-based. All paths are snapshotted from player movement. Might turn out to be a really bad idea later on when I need to write this data.
 * Need to detect discontinuities with PlayerTeleportEvent.
-* Vitals will be derived after the fact via discrete events (health regenerated, damage taken, etc.)
+* Vitals derived from per-tick polling.
 
 ---
 
@@ -112,9 +117,10 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 
 * [ ] **Dragon Position:** Poll position.
 * [ ] **Dragon Vitals:** Poll health.
-* [ ] **Dragon Damage:** Record damage events and attribute to player/entity/event.
-* [ ] **Killing Blow:** Record who or what dealt the killing blow to the dragon, when, where, and how.
-* [ ] **End Crystal Tracking:** Record crystal positions, their destruction events, and attribute who blew them up.
+* [x] **Dragon HP milestones** (50 / 25 / 10 / 5%).
+* [ ] **Attribute Killing blow**.
+* [x] **End Crystal destroyed event** (`EndCrystalDestroyed` from `MilestoneListener`).
+* [ ] **End Crystal map** (positions, per-crystal timeline).
 
 ---
 
@@ -122,13 +128,15 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 
 **Goal:** Record damage and status afflicting players.
 
-* [ ] **Environmental Effects:** Record swimming in lava, suffocation, and drowning.
-* [ ] **Potion Effects:** Record potion types, remaining durations, re-applications.
-* [ ] **Effect Clear Attribution:** Record how effect was lost (e.g. burning put out by water bucket / extinguished normally, poison cleared by drinking milk).
+* [x] **Environmental flags on snapshots** (`PlayerEnvironment`: `EnvironmentFlags` on `PlayerSnapshotChanged`).
+* [ ] **Fluid enter/exit events**
+* [ ] **Environmental tick windows** (first/last tick for drowning, suffocation, lava, etc.).
+* [x] **Potion apply / remove / reapply** (`PotionEffectListener`).
+* [ ] **Effect clear attribution** (milk, water bucket, etc.`).
 
 ### Implementation details
 
-* Will probably track "drowning" and "suffocation" as first and last tick within window.
+* Head vs feet block cells for submerged/wading; eye collision for suffocation (`PlayerEnvironment.kt`).
 
 ---
 
@@ -138,7 +146,7 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 
 ### Player economy
 
-* [ ] **Inventory Tracking:** Record full inventory, including armor, offhand items, item durabilities, item rarities, enchantments.
+* [x] **Inventory keyframes and deltas** (`InventoryKeyframeListener`).
 * [ ] **Crafting Lifecycle:** Record items crafted, items repaired (via anvil/crafting), and tool break events.
 * [ ] **Food Tracking:** Record food items consumed, surface total hunger and saturation values of food item in UI.
 
@@ -149,13 +157,15 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 ### Landmarks
 
 * [ ] **Landmarks:** Record world spawns, constructed Nether and End Portals (event on construction completion).
-* [ ] **Structures:** Record locations of naturally-generated structures that players enter (event on first step in globally, not per player).
+* [x] **Structure enter/exit events**
+* [ ] **Global structure first-visit map**
 * [ ] **Respawn locations:** Record respawn locations per player (event on spawn set, removed from map when player changes spawn).
 
-### Implementaiton details
+### Implementation details
 
 * Will probably use a window to group together crafting events to prevent spamming the logs creating a crap ton of sticks.
 * In UI, probably need to de-duplicate shared spawn locations. Also need to figure out how to handle broken beds/respawn anchors in UI.
+* `EndPortalCompleted` already fired from `EndPortalListener` when portal frame is completed.
 
 ---
 
@@ -166,7 +176,7 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 * [ ] **SQLite Database:** Draft and implement asynchronous SQLite database to persist all collected reporting data to disk.
 * [ ] **Operator Transparency:** Notify online operators when the SQLite database reporting fails to write.
 
-## Implementation details
+### Implementation details
 
 * Must be careful to implement the SQLite writes asynchronously to avoid blocking the main thread.
 * The previous plugin periodically appended data from the reporting engine to disk (esp. for paths) so doing that again might be okay.
