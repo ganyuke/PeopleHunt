@@ -2,9 +2,13 @@ package io.github.ganyuke.peoplehunt.core.testutil
 
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
+import io.github.ganyuke.peoplehunt.core.events.models.FluidState
 import io.github.ganyuke.peoplehunt.core.events.models.KillCause
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import io.github.ganyuke.peoplehunt.core.events.models.Pos4
+import io.github.ganyuke.peoplehunt.core.events.models.TeleportCause
+import io.github.ganyuke.peoplehunt.core.events.models.Velocity
+import kotlin.time.Clock
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 
 private const val DEFAULT_TICK = 0
@@ -70,6 +74,51 @@ fun playerDamagedByEntity(
 ) = ReportableEvent(
     tick = DEFAULT_TICK,
     payload = ReportablePayload.PlayerDamagedByEntity(player, entityIdentifier, amount, remainingHealth),
+)
+
+fun playerDamagedByEnvironment(
+    player: MatchPlayer,
+    cause: String = "FALL",
+    amount: Double = 10.0,
+    remainingHealth: Double? = null,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerDamagedByEnvironment(player, cause, amount, remainingHealth),
+)
+
+fun projectileLaunched(
+    projectileId: Int = 1,
+    shooter: MatchPlayer? = null,
+    shooterIdentifier: String? = null,
+    projectileType: String = "minecraft:arrow",
+    launchPos: Pos4 = pos(),
+    velocity: Velocity = Velocity(0.0, 0.0, 0.0),
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.ProjectileLaunched(projectileId, shooter, shooterIdentifier, projectileType, launchPos, velocity),
+)
+
+fun projectileMoved(
+    projectileId: Int = 1,
+    pos: Pos4 = pos(),
+    velocity: Velocity = Velocity(0.0, 0.0, 0.0),
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.ProjectileMoved(projectileId, pos, velocity),
+)
+
+fun projectileHit(
+    projectileId: Int = 1,
+    shooter: MatchPlayer? = null,
+    shooterIdentifier: String? = null,
+    projectileType: String = "minecraft:arrow",
+    hitPos: Pos4 = pos(),
+    hitEntityIdentifier: String? = null,
+    hitPlayer: MatchPlayer? = null,
+    damage: Double = 0.0,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.ProjectileHit(projectileId, shooter, shooterIdentifier, projectileType, hitPos, hitEntityIdentifier, hitPlayer, damage),
 )
 
 fun playerAcquiredItem(
@@ -140,53 +189,169 @@ fun playerSnapshotChanged(player: MatchPlayer) = ReportableEvent(
     tick = DEFAULT_TICK,
     payload = ReportablePayload.PlayerSnapshotChanged(
         player = player,
-        snapshot = io.github.ganyuke.peoplehunt.core.events.models.CurrentLifeData(
-            spatialData = io.github.ganyuke.peoplehunt.core.events.models.SpatialData(
-                position = pos(),
-                yaw = 0f,
-                pitch = 0f,
-            ),
-            vitals = io.github.ganyuke.peoplehunt.core.events.models.Vitals(
-                health = 20.0,
-                maxHealth = 20.0,
-                foodLevel = 20,
-                saturation = 5.0,
-                absorption = 0.0,
-                remainingAir = 300,
-                maxAir = 300,
-                experienceLevel = 0,
-                experienceProgress = 0.0,
-                totalXpPoints = 0,
-            ),
-            currentStates = io.github.ganyuke.peoplehunt.core.events.models.CurrentStates(
-                environmentFlags = io.github.ganyuke.peoplehunt.core.events.models.EnvironmentFlags(
-                    isBurning = false,
-                    isDrowning = false,
-                    isSuffocating = false,
-                    isFreezing = false,
-                    isWadingInWater = false,
-                    isWadingInLava = false,
-                    isSubmergedInWater = false,
-                    isSubmergedInLava = false,
-                    isInsideCobweb = false,
-                    isInsideSweetBerry = false,
+        snapshot = io.github.ganyuke.peoplehunt.core.events.models.PlayerSnapshot.Online(
+            io.github.ganyuke.peoplehunt.core.events.models.OnlineState.Alive(
+                io.github.ganyuke.peoplehunt.core.events.models.CurrentLifeData(
+                    spatialData = io.github.ganyuke.peoplehunt.core.events.models.SpatialData(
+                        position = pos(),
+                        yaw = 0f,
+                        pitch = 0f,
+                        velocity = io.github.ganyuke.peoplehunt.core.events.models.Velocity(0.0, 0.0, 0.0),
+                    ),
+                    vitals = io.github.ganyuke.peoplehunt.core.events.models.Vitals(
+                        health = 20.0,
+                        maxHealth = 20.0,
+                        foodLevel = 20,
+                        saturation = 5.0f,
+                        absorption = 0.0,
+                        remainingAir = 300,
+                        maxAir = 300,
+                        experienceLevel = 0,
+                        experienceProgress = 0.0f,
+                        totalXpPoints = 0,
+                    ),
+                    currentStates = io.github.ganyuke.peoplehunt.core.events.models.CurrentStates(
+                        environmentFlags = io.github.ganyuke.peoplehunt.core.events.models.EnvironmentFlags(
+                            isBurning = false,
+                            isDrowning = false,
+                            isSuffocating = false,
+                            isFreezing = false,
+                            isWadingInWater = false,
+                            isWadingInLava = false,
+                            isSubmergedInWater = false,
+                            isSubmergedInLava = false,
+                            isInsideCobweb = false,
+                            isInsideSweetBerry = false,
+                        ),
+                        movementFlags = io.github.ganyuke.peoplehunt.core.events.models.MovementFlags(
+                            isSleeping = false,
+                            isRiptiding = false,
+                            isClimbing = false,
+                            isSwimming = false,
+                            isSprinting = false,
+                            isSneaking = false,
+                            isFlying = false,
+                            isGliding = false,
+                        ),
+                        ridingVehicle = "none",
+                    ),
+                    metadata = io.github.ganyuke.peoplehunt.core.events.models.LifeMetadata(
+                        gameMode = "SURVIVAL",
+                        activePotionEffects = emptyList(),
+                    ),
                 ),
-                movementFlags = io.github.ganyuke.peoplehunt.core.events.models.MovementFlags(
-                    isSleeping = false,
-                    isRiptiding = false,
-                    isClimbing = false,
-                    isSwimming = false,
-                    isSprinting = false,
-                    isSneaking = false,
-                    isFlying = false,
-                    isGliding = false,
-                ),
-                ridingVehicle = "none",
-            ),
-            metadata = io.github.ganyuke.peoplehunt.core.events.models.LifeMetadata(
-                gameMode = "SURVIVAL",
-                activePotionEffects = emptyList(),
             ),
         ),
     ),
+)
+
+fun teleportSnapshot(
+    player: MatchPlayer = player(),
+    from: Pos4 = pos(),
+    to: Pos4 = pos(1, 64, 1),
+    cause: TeleportCause = TeleportCause.ENDER_PEARL,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.TeleportSnapshot(player, from, to, cause),
+)
+
+fun playerGameModeChanged(
+    player: MatchPlayer,
+    from: String = "SURVIVAL",
+    to: String = "CREATIVE",
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerGameModeChanged(player, from, to),
+)
+
+fun playerConnected(
+    player: MatchPlayer,
+    pos: Pos4 = pos(),
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerConnected(player, pos),
+)
+
+fun playerDisconnected(
+    player: MatchPlayer,
+    pos: Pos4 = pos(),
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerDisconnected(player, pos),
+)
+
+fun playerExitedStructure(
+    player: MatchPlayer,
+    structureIdentifier: String = "minecraft:fortress",
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerExitedStructure(player, structureIdentifier),
+)
+
+fun playerEnteredFluid(
+    player: MatchPlayer,
+    state: FluidState = FluidState.SubmergedInWater(Clock.System.now()),
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerEnteredFluid(player, state),
+)
+
+fun playerExitedFluid(
+    player: MatchPlayer,
+    previousState: FluidState = FluidState.SubmergedInWater(Clock.System.now()),
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerExitedFluid(player, previousState),
+)
+
+fun playerHealthChanged(
+    player: MatchPlayer,
+    newHealth: Double = 20.0,
+    maxHealth: Double = 20.0,
+    absorption: Double = 0.0,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerHealthChanged(player, newHealth, maxHealth, absorption),
+)
+
+fun playerHungerChanged(
+    player: MatchPlayer,
+    foodLevel: Int = 20,
+    saturation: Float = 5.0f,
+    exhaustion: Float = 0.0f,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerHungerChanged(player, foodLevel, saturation, exhaustion),
+)
+
+fun playerBreathChanged(
+    player: MatchPlayer,
+    remainingAir: Int = 300,
+    maxAir: Int = 300,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerBreathChanged(player, remainingAir, maxAir),
+)
+
+fun playerXpChanged(
+    player: MatchPlayer,
+    level: Int = 0,
+    progress: Float = 0.0f,
+    totalExp: Int = 0,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerXpChanged(player, level, progress, totalExp),
+)
+
+fun playerJoined(player: MatchPlayer) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerJoined(player),
+)
+
+fun playerQuit(
+    player: MatchPlayer,
+    reason: String = "QUIT",
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerQuit(player, reason),
 )

@@ -6,6 +6,8 @@ import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.core.events.models.KillCause
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
+import io.github.ganyuke.peoplehunt.core.events.models.OnlineState
+import io.github.ganyuke.peoplehunt.core.events.models.PlayerSnapshot
 import io.github.ganyuke.peoplehunt.core.ports.LoggerPort
 import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.MilestoneTracker
@@ -53,7 +55,35 @@ class ReportingEngine(
             is ReportablePayload.PotionEffectApplied -> handlePotionEffectApplied(payload)
             is ReportablePayload.PotionEffectRemoved -> handlePotionEffectRemoved(payload)
             is ReportablePayload.PlayerSnapshotChanged -> handleSnapshot(payload)
-            else -> {}
+            is ReportablePayload.PlayerMoved -> handlePlayerMoved(payload)
+            is ReportablePayload.PlayerRespawned -> handlePlayerRespawned(payload)
+            is ReportablePayload.TeleportSnapshot -> handleTeleportSnapshot(payload)
+            is ReportablePayload.PlayerGameModeChanged -> handlePlayerGameModeChanged(payload)
+            is ReportablePayload.PlayerConnected -> handlePlayerConnected(payload)
+            is ReportablePayload.PlayerDisconnected -> handlePlayerDisconnected(payload)
+            is ReportablePayload.InventoryKeyframe -> handleInventoryKeyframe(payload)
+            is ReportablePayload.InventoryDelta -> handleInventoryDelta(payload)
+            is ReportablePayload.MainHandChanged -> handleMainHandChanged(payload)
+            is ReportablePayload.PlayerEnteredStructure -> handlePlayerEnteredStructure(payload)
+            is ReportablePayload.PlayerExitedStructure -> handlePlayerExitedStructure(payload)
+            is ReportablePayload.PlayerEnteredFluid -> handlePlayerEnteredFluid(payload)
+            is ReportablePayload.PlayerExitedFluid -> handlePlayerExitedFluid(payload)
+            is ReportablePayload.PlayerHealthChanged -> handlePlayerHealthChanged(payload)
+            is ReportablePayload.PlayerHungerChanged -> handlePlayerHungerChanged(payload)
+            is ReportablePayload.PlayerBreathChanged -> handlePlayerBreathChanged(payload)
+            is ReportablePayload.PlayerXpChanged -> handlePlayerXpChanged(payload)
+            is ReportablePayload.PlayerDamagedByEnvironment -> handlePlayerDamagedByEnvironment(payload)
+            is ReportablePayload.ProjectileLaunched -> handleProjectileLaunched(payload)
+            is ReportablePayload.ProjectileMoved -> handleProjectileMoved(payload)
+            is ReportablePayload.ProjectileHit -> handleProjectileHit(payload)
+            is ReportablePayload.PlayerAcquiredItem -> handlePlayerAcquiredItem(payload)
+            is ReportablePayload.PlayerChangedDimension -> handlePlayerChangedDimension(payload)
+            is ReportablePayload.PlayerThrewEnderEye -> handlePlayerThrewEnderEye(payload)
+            is ReportablePayload.PlayerFilledBucket -> handlePlayerFilledBucket(payload)
+            is ReportablePayload.EndCrystalDestroyed -> handleEndCrystalDestroyed(payload)
+            is ReportablePayload.EndPortalCompleted -> handleEndPortalCompleted(payload)
+            is ReportablePayload.PlayerJoined -> handlePlayerJoined(payload)
+            is ReportablePayload.PlayerQuit -> handlePlayerQuit(payload)
         }
 
         processMilestoneTracking(event)
@@ -265,6 +295,137 @@ class ReportingEngine(
         }
     }
 
+    private fun logPlayerPayload(tag: String, player: MatchPlayer, detail: String = "") {
+        if (player isReally currentRunner || currentHunters reallyContains player) {
+            nameResolver[player.uuid] = player.name
+            val detailStr = if (detail.isNotEmpty()) " $detail" else ""
+            logger.info("$tag: ${player.name}$detailStr")
+        }
+    }
+
+    private fun handlePlayerMoved(payload: ReportablePayload.PlayerMoved) {
+        logPlayerPayload("Movement", payload.player, "pos=(${payload.pos.x},${payload.pos.y},${payload.pos.z})")
+    }
+
+    private fun handlePlayerRespawned(payload: ReportablePayload.PlayerRespawned) {
+        logPlayerPayload("Respawn", payload.player, "pos=(${payload.pos.x},${payload.pos.y},${payload.pos.z})")
+    }
+
+    private fun handleTeleportSnapshot(payload: ReportablePayload.TeleportSnapshot) {
+        logPlayerPayload("Teleport", payload.player, "${payload.cause} from=(${payload.from.x},${payload.from.y},${payload.from.z}) to=(${payload.to.x},${payload.to.y},${payload.to.z})")
+    }
+
+    private fun handlePlayerGameModeChanged(payload: ReportablePayload.PlayerGameModeChanged) {
+        logPlayerPayload("Gamemode", payload.player, "${payload.from} -> ${payload.to}")
+    }
+
+    private fun handlePlayerConnected(payload: ReportablePayload.PlayerConnected) {
+        logPlayerPayload("Connect", payload.player, "pos=(${payload.pos.x},${payload.pos.y},${payload.pos.z})")
+    }
+
+    private fun handlePlayerDisconnected(payload: ReportablePayload.PlayerDisconnected) {
+        logPlayerPayload("Disconnect", payload.player, "pos=(${payload.pos.x},${payload.pos.y},${payload.pos.z})")
+    }
+
+    private fun handleInventoryKeyframe(payload: ReportablePayload.InventoryKeyframe) {
+        logPlayerPayload("InventoryKeyframe", payload.player, "slots=${payload.contents.size} held=${payload.heldItemSlot}")
+    }
+
+    private fun handleInventoryDelta(payload: ReportablePayload.InventoryDelta) {
+        logPlayerPayload("InventoryDelta", payload.player, "slot=${payload.slot}")
+    }
+
+    private fun handleMainHandChanged(payload: ReportablePayload.MainHandChanged) {
+        logPlayerPayload("MainHand", payload.player, "slot=${payload.slot}")
+    }
+
+    private fun handlePlayerEnteredStructure(payload: ReportablePayload.PlayerEnteredStructure) {
+        logPlayerPayload("StructureEnter", payload.player, payload.structureIdentifier)
+    }
+
+    private fun handlePlayerExitedStructure(payload: ReportablePayload.PlayerExitedStructure) {
+        logPlayerPayload("StructureExit", payload.player, payload.structureIdentifier)
+    }
+
+    private fun handlePlayerEnteredFluid(payload: ReportablePayload.PlayerEnteredFluid) {
+        logPlayerPayload("FluidEnter", payload.player, payload.state.toString())
+    }
+
+    private fun handlePlayerExitedFluid(payload: ReportablePayload.PlayerExitedFluid) {
+        logPlayerPayload("FluidExit", payload.player, payload.previousState.toString())
+    }
+
+    private fun handlePlayerHealthChanged(payload: ReportablePayload.PlayerHealthChanged) {
+        logPlayerPayload("Health", payload.player, "hp=${payload.newHealth}/${payload.maxHealth}")
+    }
+
+    private fun handlePlayerHungerChanged(payload: ReportablePayload.PlayerHungerChanged) {
+        logPlayerPayload("Hunger", payload.player, "food=${payload.foodLevel} sat=${payload.saturation}")
+    }
+
+    private fun handlePlayerBreathChanged(payload: ReportablePayload.PlayerBreathChanged) {
+        logPlayerPayload("Breath", payload.player, "air=${payload.remainingAir}/${payload.maxAir}")
+    }
+
+    private fun handlePlayerXpChanged(payload: ReportablePayload.PlayerXpChanged) {
+        logPlayerPayload("XP", payload.player, "lvl=${payload.level} progress=${payload.progress}")
+    }
+
+    private fun handlePlayerDamagedByEnvironment(payload: ReportablePayload.PlayerDamagedByEnvironment) {
+        if (payload.player isReally currentRunner || currentHunters reallyContains payload.player) {
+            nameResolver[payload.player.uuid] = payload.player.name
+            logger.info("EnvironmentDamage: ${payload.player.name} took ${payload.amount} damage from ${payload.cause} (remaining HP: ${payload.remainingHealth})")
+        }
+    }
+
+    private fun handleProjectileLaunched(payload: ReportablePayload.ProjectileLaunched) {
+        val shooterName = payload.shooter?.name ?: payload.shooterIdentifier ?: "unknown"
+        logger.info("Projectile: $shooterName launched ${payload.projectileType} (id=${payload.projectileId}) from (${payload.launchPos.x},${payload.launchPos.y},${payload.launchPos.z})")
+    }
+
+    private fun handleProjectileMoved(payload: ReportablePayload.ProjectileMoved) {
+        // path reconstruction for rendering — verbose, log sparingly
+    }
+
+    private fun handleProjectileHit(payload: ReportablePayload.ProjectileHit) {
+        val shooterName = payload.shooter?.name ?: payload.shooterIdentifier ?: "unknown"
+        val target = payload.hitPlayer?.name ?: payload.hitEntityIdentifier ?: "block"
+        logger.info("Projectile: $shooterName ${payload.projectileType} hit $target at (${payload.hitPos.x},${payload.hitPos.y},${payload.hitPos.z}) for ${payload.damage} damage (id=${payload.projectileId})")
+    }
+
+    private fun handlePlayerAcquiredItem(payload: ReportablePayload.PlayerAcquiredItem) {
+        logPlayerPayload("AcquireItem", payload.player, "${payload.item} via ${payload.method}")
+    }
+
+    private fun handlePlayerChangedDimension(payload: ReportablePayload.PlayerChangedDimension) {
+        logPlayerPayload("Dimension", payload.player, "${payload.from} -> ${payload.to}")
+    }
+
+    private fun handlePlayerThrewEnderEye(payload: ReportablePayload.PlayerThrewEnderEye) {
+        logPlayerPayload("EnderEye", payload.player)
+    }
+
+    private fun handlePlayerFilledBucket(payload: ReportablePayload.PlayerFilledBucket) {
+        logPlayerPayload("BucketFill", payload.player, payload.fluid)
+    }
+
+    private fun handleEndCrystalDestroyed(payload: ReportablePayload.EndCrystalDestroyed) {
+        val playerName = payload.player?.name ?: "unknown"
+        logger.info("EndCrystal: destroyed by $playerName")
+    }
+
+    private fun handleEndPortalCompleted(payload: ReportablePayload.EndPortalCompleted) {
+        logger.info("EndPortal: completed at (${payload.pos.x},${payload.pos.y},${payload.pos.z})")
+    }
+
+    private fun handlePlayerJoined(payload: ReportablePayload.PlayerJoined) {
+        logPlayerPayload("Join", payload.player)
+    }
+
+    private fun handlePlayerQuit(payload: ReportablePayload.PlayerQuit) {
+        logPlayerPayload("Quit", payload.player, payload.reason)
+    }
+
     private fun handlePotionEffectRemoved(payload: ReportablePayload.PotionEffectRemoved) {
         if (payload.player isReally currentRunner || currentHunters reallyContains payload.player) {
             nameResolver[payload.player.uuid] = payload.player.name
@@ -275,7 +436,8 @@ class ReportingEngine(
     private fun handleSnapshot(payload: ReportablePayload.PlayerSnapshotChanged) {
         if (payload.player isReally currentRunner || currentHunters reallyContains payload.player) {
             nameResolver[payload.player.uuid] = payload.player.name
-            val s = payload.snapshot
+            val data = (payload.snapshot as? PlayerSnapshot.Online)?.state as? OnlineState.Alive ?: return
+            val s = data.currentLifeData
             logger.info("Snapshot: ${payload.player.name} pos=(${s.spatialData.position.x},${s.spatialData.position.y},${s.spatialData.position.z}) hp=${s.vitals.health} food=${s.vitals.foodLevel} effects=${s.metadata.activePotionEffects.size}")
         }
     }

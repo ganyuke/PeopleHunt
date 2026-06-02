@@ -13,10 +13,12 @@ import io.github.ganyuke.peoplehunt.paper.events.CompassEventHandler
 import io.github.ganyuke.peoplehunt.paper.listeners.CombatStatsListener
 import io.github.ganyuke.peoplehunt.paper.listeners.CoreListener
 import io.github.ganyuke.peoplehunt.paper.listeners.EndPortalListener
+import io.github.ganyuke.peoplehunt.paper.listeners.EnvironmentDamageListener
 import io.github.ganyuke.peoplehunt.paper.listeners.FluidListener
 import io.github.ganyuke.peoplehunt.paper.listeners.InventoryListener
 import io.github.ganyuke.peoplehunt.paper.listeners.MilestoneListener
 import io.github.ganyuke.peoplehunt.paper.listeners.PlayerSnapshotPoller
+import io.github.ganyuke.peoplehunt.paper.listeners.ProjectileTracker
 import io.github.ganyuke.peoplehunt.paper.listeners.PotionEffectListener
 import io.github.ganyuke.peoplehunt.paper.listeners.StructureListener
 import io.github.ganyuke.peoplehunt.paper.listeners.TeleportListener
@@ -60,6 +62,7 @@ class PeopleHunt : JavaPlugin() {
         val compassService = CompassService(outbound)
         val playerSnapshotPoller = PlayerSnapshotPoller(this, inbound)
         val inventoryListener = InventoryListener(this, inbound)
+        val projectileTracker = ProjectileTracker(this, inbound)
 
         // register listeners on bus that match and compass react to
         registerInbound(listOf(
@@ -75,7 +78,8 @@ class PeopleHunt : JavaPlugin() {
             broadcastEventHandler::onMatchEvent,
             reportingEngine::onMatchEvent,
             playerSnapshotPoller::onMatchEvent,
-            inventoryListener::onMatchEvent
+            inventoryListener::onMatchEvent,
+            projectileTracker::onMatchEvent
         ))
 
         // register Bukkit listeners
@@ -88,6 +92,8 @@ class PeopleHunt : JavaPlugin() {
             StructureListener(inbound),
             TeleportListener(inbound),
             FluidListener(this, inbound),
+            EnvironmentDamageListener(inbound),
+            projectileTracker,
             playerSnapshotPoller,
             inventoryListener
         ))

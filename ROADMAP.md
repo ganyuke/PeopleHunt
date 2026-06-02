@@ -90,7 +90,7 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 
 * [x] Capture player coordinates + world/dimension (`PlayerMoved` on every move via `CoreListener`).
 * [x] Record distinct teleportation causes (Ender Pearl, chorus, commands, portals, etc.) — `TeleportListener` → `TeleportSnapshot` + `TeleportCause`; filters `UNKNOWN` teleports under 4 blocks.
-* [ ] Handle discontinuities in path + filter out minor teleport noises beyond the teleport listener threshold (e.g. remaining vanilla push-out cases).
+* [x] Handle discontinuities in path + filter out minor teleport noises beyond the teleport listener threshold (e.g. remaining vanilla push-out cases).
 * [x] Record basic movement states on move (`sprinting`, `sneaking`, `flying`, `swimming`, `gliding` on `PlayerMoved`).
 * [x] Richer movement/environment state on match ticks via `PlayerSnapshotChanged` (`MovementFlags`, `EnvironmentFlags`, game mode, vehicle, potion list on snapshot).
 * [x] Record vitals during active matches via `PlayerSnapshotPoller` → `PlayerSnapshotChanged` (`Vitals`: health, food, air, XP, absorption, etc.) every tick while match is active.
@@ -99,8 +99,8 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 
 * [x] Record player ↔ entity damage amounts (`CombatStatsListener`, `PlayerDamagedEntity` / `PlayerDamagedByEntity`).
 * [x] Record player deaths and killer attribution (`PlayerDied` / `EntityDied`, `KillCause`).
-* [ ] Record environmental damage with typed cause (`PlayerDamagedByEnvironment`).
-* [ ] Record projectile launch and hit (`ProjectileLaunched`, `ProjectileHit`).
+* [x] Record environmental damage with typed cause (`PlayerDamagedByEnvironment`).
+* [x] Record projectile launch and hit (`ProjectileLaunched`, `ProjectileHit`).
 
 ### Implementation details
 

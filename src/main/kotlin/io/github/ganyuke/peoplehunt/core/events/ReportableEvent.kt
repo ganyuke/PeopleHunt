@@ -184,18 +184,29 @@ sealed class ReportablePayload {
     ) : ReportablePayload()
 
     data class ProjectileLaunched(
-        val player: MatchPlayer,
+        val projectileId: Int,
+        val shooter: MatchPlayer?, // null if not fired by a player
+        val shooterIdentifier: String?, // entity type key for non-player shooters, e.g. "minecraft:skeleton"
         val projectileType: String, // arrow, trident, snowball, etc.
         val launchPos: Pos4,
         val velocity: Velocity, // for path reconstruction
     ) : ReportablePayload()
 
+    data class ProjectileMoved(
+        val projectileId: Int,
+        val pos: Pos4,
+        val velocity: Velocity,
+    ) : ReportablePayload()
+
     data class ProjectileHit(
+        val projectileId: Int,
         val shooter: MatchPlayer?, // null if not fired by player
+        val shooterIdentifier: String?, // entity type key for non-player shooters
         val projectileType: String,
         val hitPos: Pos4,
         val hitEntityIdentifier: String?, // null for hitting block
         val hitPlayer: MatchPlayer?,
+        val damage: Double,
     ) : ReportablePayload()
 
 

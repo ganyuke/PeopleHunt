@@ -8,17 +8,34 @@ import io.github.ganyuke.peoplehunt.core.testutil.endPortalCompleted
 import io.github.ganyuke.peoplehunt.core.testutil.entityDied
 import io.github.ganyuke.peoplehunt.core.testutil.player
 import io.github.ganyuke.peoplehunt.core.testutil.playerAcquiredItem
+import io.github.ganyuke.peoplehunt.core.testutil.playerBreathChanged
 import io.github.ganyuke.peoplehunt.core.testutil.playerChangedDimension
+import io.github.ganyuke.peoplehunt.core.testutil.playerConnected
 import io.github.ganyuke.peoplehunt.core.testutil.playerDamagedByEntity
+import io.github.ganyuke.peoplehunt.core.testutil.playerDamagedByEnvironment
 import io.github.ganyuke.peoplehunt.core.testutil.playerDamagedEntity
 import io.github.ganyuke.peoplehunt.core.testutil.playerDied
+import io.github.ganyuke.peoplehunt.core.testutil.playerDisconnected
+import io.github.ganyuke.peoplehunt.core.testutil.playerEnteredFluid
 import io.github.ganyuke.peoplehunt.core.testutil.playerEnteredStructure
+import io.github.ganyuke.peoplehunt.core.testutil.playerExitedFluid
+import io.github.ganyuke.peoplehunt.core.testutil.playerExitedStructure
 import io.github.ganyuke.peoplehunt.core.testutil.playerFilledBucket
+import io.github.ganyuke.peoplehunt.core.testutil.playerGameModeChanged
+import io.github.ganyuke.peoplehunt.core.testutil.playerHealthChanged
+import io.github.ganyuke.peoplehunt.core.testutil.playerHungerChanged
+import io.github.ganyuke.peoplehunt.core.testutil.playerJoined
 import io.github.ganyuke.peoplehunt.core.testutil.playerMoved
+import io.github.ganyuke.peoplehunt.core.testutil.playerQuit
+import io.github.ganyuke.peoplehunt.core.testutil.playerRespawned
 import io.github.ganyuke.peoplehunt.core.testutil.playerSnapshotChanged
 import io.github.ganyuke.peoplehunt.core.testutil.playerThrewEnderEye
+import io.github.ganyuke.peoplehunt.core.testutil.playerXpChanged
 import io.github.ganyuke.peoplehunt.core.testutil.potionEffectApplied
 import io.github.ganyuke.peoplehunt.core.testutil.potionEffectRemoved
+import io.github.ganyuke.peoplehunt.core.testutil.projectileHit
+import io.github.ganyuke.peoplehunt.core.testutil.projectileLaunched
+import io.github.ganyuke.peoplehunt.core.testutil.teleportSnapshot
 import io.github.ganyuke.peoplehunt.core.testutil.pos
 import io.github.ganyuke.peoplehunt.core.testutil.reportingEngineFixture
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
@@ -256,6 +273,243 @@ class ReportingEngineTest {
         fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
         fixture.engine.onReportableEvent(playerSnapshotChanged(player("stranger")))
         assertTrue(fixture.logger.infoMessages.none { it.contains("Snapshot") })
+    }
+
+    // -------------------------------------------------------------------------
+    // General payload logging handlers
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun trackedPlayerMovement_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerMoved(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Movement: runner") })
+    }
+
+    @Test
+    fun untrackedPlayerMovement_ignored() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerMoved(player("stranger")))
+        assertTrue(fixture.logger.infoMessages.none { it.contains("Movement:") })
+    }
+
+    @Test
+    fun trackedPlayerRespawned_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerRespawned(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Respawn: runner") })
+    }
+
+    @Test
+    fun trackedTeleport_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(teleportSnapshot(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Teleport: runner") })
+    }
+
+    @Test
+    fun trackedGameModeChanged_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerGameModeChanged(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Gamemode: runner") })
+    }
+
+    @Test
+    fun trackedPlayerConnected_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerConnected(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Connect: runner") })
+    }
+
+    @Test
+    fun trackedPlayerDisconnected_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerDisconnected(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Disconnect: runner") })
+    }
+
+    @Test
+    fun trackedStructureExit_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerExitedStructure(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("StructureExit: runner") })
+    }
+
+    @Test
+    fun trackedFluidEnter_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerEnteredFluid(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("FluidEnter: runner") })
+    }
+
+    @Test
+    fun trackedFluidExit_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerExitedFluid(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("FluidExit: runner") })
+    }
+
+    @Test
+    fun trackedHealthChanged_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerHealthChanged(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Health: runner") })
+    }
+
+    @Test
+    fun trackedHungerChanged_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerHungerChanged(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Hunger: runner") })
+    }
+
+    @Test
+    fun trackedBreathChanged_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerBreathChanged(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Breath: runner") })
+    }
+
+    @Test
+    fun trackedXpChanged_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerXpChanged(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("XP: runner") })
+    }
+
+    @Test
+    fun trackedJoin_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerJoined(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Join: runner") })
+    }
+
+    @Test
+    fun trackedQuit_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerQuit(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Quit: runner") })
+    }
+
+    // -------------------------------------------------------------------------
+    // handlePlayerDamagedByEnvironment
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun trackedPlayerDamagedByEnvironment_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerDamagedByEnvironment(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("EnvironmentDamage: runner") })
+    }
+
+    @Test
+    fun untrackedPlayerDamagedByEnvironment_ignored() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerDamagedByEnvironment(player("stranger")))
+        assertTrue(fixture.logger.infoMessages.none { it.contains("EnvironmentDamage") })
+    }
+
+    // -------------------------------------------------------------------------
+    // handleProjectileLaunched / handleProjectileHit
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun projectileLaunched_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(projectileLaunched(shooter = runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Projectile") && it.contains("launched") })
+    }
+
+    @Test
+    fun projectileHit_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(projectileHit(shooter = runner, hitPlayer = player("hunter")))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Projectile") && it.contains("hit") })
+    }
+
+    @Test
+    fun projectileLaunchedByNonPlayer_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(projectileLaunched(shooter = null))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Projectile") && it.contains("unknown") })
+    }
+
+    @Test
+    fun projectileLaunchedByEntity_logsEntityType() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(projectileLaunched(shooter = null, shooterIdentifier = "minecraft:skeleton"))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("minecraft:skeleton") })
+    }
+
+    @Test
+    fun projectileHitByEntity_logsEntityType() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(projectileHit(shooter = null, shooterIdentifier = "minecraft:pillager"))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("minecraft:pillager") })
+    }
+
+    @Test
+    fun endCrystalDestroyed_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(endCrystalDestroyed(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("EndCrystal") })
+    }
+
+    @Test
+    fun endPortalCompleted_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(endPortalCompleted(pos()))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("EndPortal") })
     }
 
     // -------------------------------------------------------------------------
