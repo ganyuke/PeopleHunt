@@ -16,6 +16,7 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDeathEvent
+import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.player.PlayerRespawnEvent
 
@@ -27,8 +28,6 @@ class CoreListener(private val inbound: ReportableEventBus) : Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onDeath(event: EntityDeathEvent) {
-        // EntityDeathEvent doesn't naturally have entity killers,
-        // only players, so we need to check what last damaged it before death
         val cause = event.entity.lastDamageCause as? EntityDamageByEntityEvent
 
         val killCause = when (val damager = cause?.damager) {
@@ -37,14 +36,25 @@ class CoreListener(private val inbound: ReportableEventBus) : Listener {
             null -> KillCause.Environmental
         }
 
-        inbound.post(
-            ReportablePayload.EntityDied(
-                player = (event.entity as? Player)?.toMatchPlayer(),
-                entityIdentifier = event.entityType.key.toString(),
-                pos = event.entity.location.toPos4(),
-                cause = killCause
+        val deadEntity = event.entity
+        if (deadEntity is Player) {
+            inbound.post(
+                ReportablePayload.PlayerDied(
+                    player = deadEntity.toMatchPlayer(),
+                    pos = deadEntity.location.toPos4(),
+                    cause = killCause,
+                    deathMessage = (event as? PlayerDeathEvent)?.deathMessage,
+                )
             )
-        )
+        } else {
+            inbound.post(
+                ReportablePayload.EntityDied(
+                    entityIdentifier = deadEntity.type.key.toString(),
+                    pos = deadEntity.location.toPos4(),
+                    cause = killCause,
+                )
+            )
+        }
     }
 
     @EventHandler

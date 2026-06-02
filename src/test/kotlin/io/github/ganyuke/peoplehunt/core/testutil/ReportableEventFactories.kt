@@ -1,0 +1,192 @@
+package io.github.ganyuke.peoplehunt.core.testutil
+
+import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
+import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
+import io.github.ganyuke.peoplehunt.core.events.models.KillCause
+import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
+import io.github.ganyuke.peoplehunt.core.events.models.Pos4
+import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
+
+private const val DEFAULT_TICK = 0
+
+fun playerMoved(
+    player: MatchPlayer,
+    pos: Pos4 = pos(),
+    yaw: Float = 0f,
+    pitch: Float = 0f,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerMoved(
+        player = player,
+        pos = pos,
+        yaw = yaw,
+        pitch = pitch,
+        sprinting = false,
+        sneaking = false,
+        flying = false,
+        swimming = false,
+        gliding = false,
+    ),
+)
+
+fun playerRespawned(player: MatchPlayer, pos: Pos4 = pos()) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerRespawned(player, pos),
+)
+
+fun playerDied(
+    player: MatchPlayer,
+    pos: Pos4 = pos(),
+    cause: KillCause = KillCause.Environmental,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerDied(player, pos, cause, deathMessage = null),
+)
+
+fun entityDied(
+    entityIdentifier: String,
+    pos: Pos4 = pos(),
+    cause: KillCause = KillCause.Environmental,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.EntityDied(entityIdentifier, pos, cause),
+)
+
+fun playerDamagedEntity(
+    player: MatchPlayer,
+    entityIdentifier: String,
+    amount: Double,
+    remainingHealth: Double? = null,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerDamagedEntity(player, entityIdentifier, amount, remainingHealth),
+)
+
+fun playerDamagedByEntity(
+    player: MatchPlayer,
+    entityIdentifier: String,
+    amount: Double,
+    remainingHealth: Double? = null,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerDamagedByEntity(player, entityIdentifier, amount, remainingHealth),
+)
+
+fun playerAcquiredItem(
+    player: MatchPlayer,
+    item: SpeedrunMilestone.ItemAcquired.Item,
+    method: SpeedrunMilestone.AcquisitionMethod,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerAcquiredItem(player, item, method),
+)
+
+fun playerChangedDimension(
+    player: MatchPlayer,
+    from: String,
+    to: String,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerChangedDimension(player, from, to),
+)
+
+fun playerThrewEnderEye(player: MatchPlayer) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerThrewEnderEye(player),
+)
+
+fun playerFilledBucket(player: MatchPlayer, fluid: String) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerFilledBucket(player, fluid),
+)
+
+fun endCrystalDestroyed(player: MatchPlayer? = null) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.EndCrystalDestroyed(player),
+)
+
+fun endPortalCompleted(pos: Pos4) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.EndPortalCompleted(pos),
+)
+
+fun playerEnteredStructure(player: MatchPlayer, structure: String) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerEnteredStructure(player, structure),
+)
+
+fun potionEffectApplied(
+    player: MatchPlayer,
+    effectType: String = "minecraft:speed",
+    amplifier: Int = 0,
+    duration: Int = 200,
+    cause: String = "minecraft:arrow",
+    reapplication: Boolean = false,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PotionEffectApplied(player, effectType, amplifier, duration, cause, reapplication),
+)
+
+fun potionEffectRemoved(
+    player: MatchPlayer,
+    effectType: String = "minecraft:speed",
+    cause: String = "minecraft:arrow",
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PotionEffectRemoved(player, effectType, cause),
+)
+
+fun playerSnapshotChanged(player: MatchPlayer) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerSnapshotChanged(
+        player = player,
+        snapshot = io.github.ganyuke.peoplehunt.core.events.models.CurrentLifeData(
+            spatialData = io.github.ganyuke.peoplehunt.core.events.models.SpatialData(
+                position = pos(),
+                yaw = 0f,
+                pitch = 0f,
+            ),
+            vitals = io.github.ganyuke.peoplehunt.core.events.models.Vitals(
+                health = 20.0,
+                maxHealth = 20.0,
+                foodLevel = 20,
+                saturation = 5.0,
+                absorption = 0.0,
+                remainingAir = 300,
+                maxAir = 300,
+                experienceLevel = 0,
+                experienceProgress = 0.0,
+                totalXpPoints = 0,
+            ),
+            currentStates = io.github.ganyuke.peoplehunt.core.events.models.CurrentStates(
+                environmentFlags = io.github.ganyuke.peoplehunt.core.events.models.EnvironmentFlags(
+                    isBurning = false,
+                    isDrowning = false,
+                    isSuffocating = false,
+                    isFreezing = false,
+                    isWadingInWater = false,
+                    isWadingInLava = false,
+                    isSubmergedInWater = false,
+                    isSubmergedInLava = false,
+                    isInsideCobweb = false,
+                    isInsideSweetBerry = false,
+                ),
+                movementFlags = io.github.ganyuke.peoplehunt.core.events.models.MovementFlags(
+                    isSleeping = false,
+                    isRiptiding = false,
+                    isClimbing = false,
+                    isSwimming = false,
+                    isSprinting = false,
+                    isSneaking = false,
+                    isFlying = false,
+                    isGliding = false,
+                ),
+                ridingVehicle = "none",
+            ),
+            metadata = io.github.ganyuke.peoplehunt.core.events.models.LifeMetadata(
+                gameMode = "SURVIVAL",
+                activePotionEffects = emptyList(),
+            ),
+        ),
+    ),
+)

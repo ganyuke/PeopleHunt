@@ -46,9 +46,13 @@ class ReportingEngine(
 
     fun onReportableEvent(event: ReportableEvent) {
         when (val payload = event.payload) {
+            is ReportablePayload.PlayerDied -> handlePlayerDied(payload)
             is ReportablePayload.EntityDied -> handleEntityDied(payload)
             is ReportablePayload.PlayerDamagedEntity -> handleDamageDealt(payload)
             is ReportablePayload.PlayerDamagedByEntity -> handleDamageReceived(payload)
+            is ReportablePayload.PotionEffectApplied -> handlePotionEffectApplied(payload)
+            is ReportablePayload.PotionEffectRemoved -> handlePotionEffectRemoved(payload)
+            is ReportablePayload.PlayerSnapshotChanged -> handleSnapshot(payload)
             else -> {}
         }
 
@@ -216,20 +220,30 @@ class ReportingEngine(
         }
     }
 
-    private fun handleEntityDied(payload: ReportablePayload.EntityDied) {
-        // Log player deaths
-        payload.player?.let { deadPlayer ->
-            nameResolver[deadPlayer.uuid] = deadPlayer.name
+    private fun handlePlayerDied(payload: ReportablePayload.PlayerDied) {
+        nameResolver[payload.player.uuid] = payload.player.name
 
-            if (deadPlayer isReally currentRunner || currentHunters reallyContains deadPlayer) {
-                logger.info("Combat Stats: ${deadPlayer.name} has died.")
-                combatStatsTracker.recordDeath(deadPlayer.uuid)
-            } else {
-                logger.warn("Received death event for untracked player: ${deadPlayer.name} (UID: ${deadPlayer.uuid})")
-            }
+        if (payload.player isReally currentRunner || currentHunters reallyContains payload.player) {
+            logger.info("Combat Stats: ${payload.player.name} has died.")
+            combatStatsTracker.recordDeath(payload.player.uuid)
+        } else {
+            logger.warn("Received death event for untracked player: ${payload.player.name} (UID: ${payload.player.uuid})")
         }
 
-        // Log player kills
+        if (payload.cause is KillCause.KilledByPlayer) {
+            val killer = payload.cause.killer
+            nameResolver[killer.uuid] = killer.name
+
+            if (killer isReally currentRunner || currentHunters reallyContains killer) {
+                logger.info("Combat Stats: ${killer.name} scored a kill.")
+                combatStatsTracker.recordKill(killer.uuid)
+            } else {
+                logger.warn("Received kill event for untracked killer: ${killer.name} (UID: ${killer.uuid})")
+            }
+        }
+    }
+
+    private fun handleEntityDied(payload: ReportablePayload.EntityDied) {
         if (payload.cause is KillCause.KilledByPlayer) {
             val killer = payload.cause.killer
             nameResolver[killer.uuid] = killer.name
@@ -238,8 +252,31 @@ class ReportingEngine(
                 logger.info("Combat Stats: ${killer.name} scored a kill against ${payload.entityIdentifier}.")
                 combatStatsTracker.recordKill(killer.uuid)
             } else {
-                logger.warn("Received death event for untracked killer: ${killer.name} (UID: ${killer.uuid})")
+                logger.warn("Received kill event for untracked killer: ${killer.name} (UID: ${killer.uuid})")
             }
+        }
+    }
+
+    private fun handlePotionEffectApplied(payload: ReportablePayload.PotionEffectApplied) {
+        if (payload.player isReally currentRunner || currentHunters reallyContains payload.player) {
+            nameResolver[payload.player.uuid] = payload.player.name
+            val verb = if (payload.reapplication) "Reapplied" else "Applied"
+            logger.info("Potion: $verb ${payload.effectType} (${payload.amplifier}, ${payload.duration}t) to ${payload.player.name} via ${payload.cause}")
+        }
+    }
+
+    private fun handlePotionEffectRemoved(payload: ReportablePayload.PotionEffectRemoved) {
+        if (payload.player isReally currentRunner || currentHunters reallyContains payload.player) {
+            nameResolver[payload.player.uuid] = payload.player.name
+            logger.info("Potion: Removed ${payload.effectType} from ${payload.player.name} via ${payload.cause}")
+        }
+    }
+
+    private fun handleSnapshot(payload: ReportablePayload.PlayerSnapshotChanged) {
+        if (payload.player isReally currentRunner || currentHunters reallyContains payload.player) {
+            nameResolver[payload.player.uuid] = payload.player.name
+            val s = payload.snapshot
+            logger.info("Snapshot: ${payload.player.name} pos=(${s.spatialData.position.x},${s.spatialData.position.y},${s.spatialData.position.z}) hp=${s.vitals.health} food=${s.vitals.foodLevel} effects=${s.metadata.activePotionEffects.size}")
         }
     }
 }

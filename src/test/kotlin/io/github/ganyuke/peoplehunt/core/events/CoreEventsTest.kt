@@ -1,9 +1,22 @@
 package io.github.ganyuke.peoplehunt.core.events
 
+import io.github.ganyuke.peoplehunt.core.events.models.KillCause
+import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import io.github.ganyuke.peoplehunt.core.events.models.Pos4
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
+import io.github.ganyuke.peoplehunt.core.testutil.entityDied
+import io.github.ganyuke.peoplehunt.core.testutil.endCrystalDestroyed
+import io.github.ganyuke.peoplehunt.core.testutil.endPortalCompleted
 import io.github.ganyuke.peoplehunt.core.testutil.player
+import io.github.ganyuke.peoplehunt.core.testutil.playerAcquiredItem
+import io.github.ganyuke.peoplehunt.core.testutil.playerChangedDimension
+import io.github.ganyuke.peoplehunt.core.testutil.playerDamagedByEntity
+import io.github.ganyuke.peoplehunt.core.testutil.playerDamagedEntity
+import io.github.ganyuke.peoplehunt.core.testutil.playerFilledBucket
+import io.github.ganyuke.peoplehunt.core.testutil.playerMoved
+import io.github.ganyuke.peoplehunt.core.testutil.playerRespawned
+import io.github.ganyuke.peoplehunt.core.testutil.playerThrewEnderEye
 import io.github.ganyuke.peoplehunt.core.testutil.pos
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -47,36 +60,48 @@ class CoreEventsTest {
             SpeedrunMilestone.ItemAcquired.Item.BUCKET,
             SpeedrunMilestone.AcquisitionMethod.CRAFTED,
         )
-        val events: List<ReportableEvent> = listOf(
-            // todo: update PlayerMoved to new snapshot format
-            ReportableEvent.PlayerMoved(p, location),
-            ReportableEvent.PlayerRespawned(p, location),
-            ReportableEvent.EntityDied(p, "minecraft:zombie", location, p, "minecraft:skeleton"),
-            ReportableEvent.PlayerDamagedEntity(p, "minecraft:zombie", 2.5),
-            ReportableEvent.PlayerDamagedByEntity(p, 1.0),
-            ReportableEvent.PlayerAcquiredItem(p, item.item, item.method),
-            ReportableEvent.PlayerChangedDimension(p, "overworld", "nether"),
-            ReportableEvent.PlayerThrewItem(p, "minecraft:ender_eye"),
-            ReportableEvent.PlayerFilledBucket(p, "water"),
-            ReportableEvent.EndCrystalDestroyed(p),
-            ReportableEvent.EndPortalCompleted(Pos4(1, 2, 3, Uuid.random())),
-        )
-        assertEquals(11, events.size)
-        assertNotEquals(events[0], events[1])
-        assertEquals("nether", (events[6] as ReportableEvent.PlayerChangedDimension).to)
-        events.forEach { event ->
-            assertEquals(event, event)
-            event.hashCode()
-            when (event) {
-                is ReportableEvent.PlayerMoved -> {
-                    assertEquals(p, event.movementSnapshot.player)
-                    // todo: update PlayerMoved to new snapshot format
-                    event.copy(player = p)
-                }
-                is ReportableEvent.PlayerAcquiredItem -> event.copy(method = SpeedrunMilestone.AcquisitionMethod.TRADED)
-                else -> Unit
-            }
-        }
+
+        val pm = playerMoved(p, location)
+        assertEquals(p, (pm.payload as ReportablePayload.PlayerMoved).player)
+
+        val pr = playerRespawned(p, location)
+        assertEquals(p, (pr.payload as ReportablePayload.PlayerRespawned).player)
+
+        val ed = entityDied("minecraft:zombie", location, KillCause.KilledByPlayer(p))
+        val edPayload = ed.payload as ReportablePayload.EntityDied
+        assertEquals("minecraft:zombie", edPayload.entityIdentifier)
+        assertEquals(p, (edPayload.cause as KillCause.KilledByPlayer).killer)
+
+        val pde = playerDamagedEntity(p, "minecraft:zombie", 2.5)
+        assertEquals(2.5, (pde.payload as ReportablePayload.PlayerDamagedEntity).amount)
+
+        val pdb = playerDamagedByEntity(p, "minecraft:zombie", 1.0)
+        assertEquals(1.0, (pdb.payload as ReportablePayload.PlayerDamagedByEntity).amount)
+
+        val pai = playerAcquiredItem(p, item.item, item.method)
+        val paiPayload = pai.payload as ReportablePayload.PlayerAcquiredItem
+        assertEquals(item.item, paiPayload.item)
+        assertEquals(item.method, paiPayload.method)
+
+        val pcd = playerChangedDimension(p, "overworld", "nether")
+        val pcdPayload = pcd.payload as ReportablePayload.PlayerChangedDimension
+        assertEquals("overworld", pcdPayload.from)
+        assertEquals("nether", pcdPayload.to)
+
+        val pte = playerThrewEnderEye(p)
+        assertEquals(p, (pte.payload as ReportablePayload.PlayerThrewEnderEye).player)
+
+        val pfb = playerFilledBucket(p, "water")
+        assertEquals("water", (pfb.payload as ReportablePayload.PlayerFilledBucket).fluid)
+
+        val ecd = endCrystalDestroyed(p)
+        assertEquals(p, (ecd.payload as ReportablePayload.EndCrystalDestroyed).player)
+
+        val portalPos = Pos4(1, 2, 3, Uuid.random())
+        val epc = endPortalCompleted(portalPos)
+        assertEquals(portalPos, (epc.payload as ReportablePayload.EndPortalCompleted).pos)
+
+        assertNotEquals(pm, pr)
     }
 
     @Test

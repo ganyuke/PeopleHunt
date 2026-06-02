@@ -9,9 +9,6 @@ import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
 import org.bukkit.event.player.PlayerMoveEvent
-import org.bukkit.inventory.ItemStack
-import org.bukkit.inventory.PlayerInventory
-import java.util.HexFormat
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
@@ -49,8 +46,3 @@ fun ReportableEventBus.post(payload: ReportablePayload) = this.post(
         payload = payload
     )
 )
-
-fun snapshot(item: ItemStack, inventory: PlayerInventory) {
-    inventory = inventory.viewers
-    item.serializeAsBytes().toHexString()
-}

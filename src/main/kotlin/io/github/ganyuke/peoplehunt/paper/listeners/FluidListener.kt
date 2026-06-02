@@ -3,9 +3,9 @@ package io.github.ganyuke.peoplehunt.paper.listeners
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.core.events.models.FluidState
+import io.github.ganyuke.peoplehunt.paper.utils.environmentSnapshot
 import io.github.ganyuke.peoplehunt.paper.utils.post
 import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
-import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
@@ -24,15 +24,8 @@ class FluidListener(private val plugin: JavaPlugin, private val inbound: Reporta
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onMoveIntoFluid(event: PlayerMoveEvent) {
         val player = event.player
-        val head = player.eyeLocation
         val now = Clock.System.now()
-
-        val newState: FluidState = when {
-            player.isInWater && head.block.isLiquid -> FluidState.SubmergedInWater(now)
-            player.location.block.type == Material.LAVA -> FluidState.InLava(now)
-            player.location.block.isSolid -> FluidState.SuffocatingInBlock(now)
-            else -> FluidState.Dry
-        }
+        val newState = player.environmentSnapshot().primaryFluidState(now)
 
         val prev = playerStates[player.uniqueId] ?: FluidState.Dry
         if (newState::class == prev::class) return  // no transition, skip

@@ -1,6 +1,7 @@
 package io.github.ganyuke.peoplehunt.core.events
 
 import io.github.ganyuke.peoplehunt.core.testutil.player
+import io.github.ganyuke.peoplehunt.core.testutil.playerMoved
 import io.github.ganyuke.peoplehunt.core.testutil.pos
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -28,8 +29,7 @@ class EventBusTest {
         val listener: ReportableEventBus.ReportableEventListener = { received += it }
         bus.register(listener)
         val runner = player("runner")
-        // todo: update PlayerMoved to new snapshot format
-        val event = ReportableEvent.PlayerMoved(runner, pos())
+        val event = playerMoved(runner, pos())
         bus.post(event)
         assertEquals(1, received.size)
         assertEquals(event, received.single())

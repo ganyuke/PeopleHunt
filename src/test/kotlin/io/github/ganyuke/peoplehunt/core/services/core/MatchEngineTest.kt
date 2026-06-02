@@ -2,9 +2,13 @@ package io.github.ganyuke.peoplehunt.core.services.core
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
-import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
+import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
+import io.github.ganyuke.peoplehunt.core.events.models.KillCause
+import io.github.ganyuke.peoplehunt.core.testutil.entityDied
 import io.github.ganyuke.peoplehunt.core.testutil.matchEngineFixture
 import io.github.ganyuke.peoplehunt.core.testutil.player
+import io.github.ganyuke.peoplehunt.core.testutil.playerDied
+import io.github.ganyuke.peoplehunt.core.testutil.playerMoved
 import io.github.ganyuke.peoplehunt.core.testutil.pos
 import io.github.ganyuke.peoplehunt.core.testutil.testPhConfig
 import kotlin.time.Duration.Companion.milliseconds
@@ -74,8 +78,7 @@ class MatchEngineTest {
         fixture.engine.addHunter(hunter)
         fixture.engine.prime(emptyList())
 
-        // todo: update PlayerMoved to new MovementSnapshot format
-        fixture.engine.onEvent(ReportableEvent.PlayerMoved(runner, pos()))
+        fixture.engine.onEvent(playerMoved(runner))
 
         assertIs<MatchEngine.MatchState.Active>(fixture.engine.currentStatus)
         assertTrue(events.any { it is MatchEvent.MatchStart })
@@ -147,15 +150,13 @@ class MatchEngineTest {
         val fixture = matchEngineFixture()
         collectEvents(fixture.bus)
         val runner = player("runner")
+        val hunter = player("hunter")
         fixture.engine.setRunner(runner)
         fixture.engine.forceStart(emptyList())
         fixture.engine.onEvent(
-            ReportableEvent.EntityDied(
+            playerDied(
                 player = runner,
-                entityIdentifier = "minecraft:player",
-                pos = pos(),
-                playerKiller = player("hunter"),
-                entityKiller = null,
+                cause = KillCause.KilledByPlayer(hunter),
             ),
         )
         val finished = fixture.engine.currentStatus as MatchEngine.MatchState.Finished
@@ -170,13 +171,7 @@ class MatchEngineTest {
         match.setRunner(runner)
         match.forceStart(emptyList())
         match.onEvent(
-            ReportableEvent.EntityDied(
-                player = null,
-                entityIdentifier = "minecraft:ender_dragon",
-                pos = pos(),
-                playerKiller = null,
-                entityKiller = null,
-            ),
+            entityDied("minecraft:ender_dragon"),
         )
         val finished = match.currentStatus as MatchEngine.MatchState.Finished
         assertEquals(MatchEngine.MatchOutcome.RUNNER_VICTORY, finished.outcome)
@@ -233,8 +228,7 @@ class MatchEngineTest {
         match.setRunner(runner)
         match.prime(emptyList())
         assertEquals(MatchEngine.FailureReason.ALREADY_PRIMED, (match.setRunner(player("x")) as MatchEngine.MatchResult.Err).reason)
-        // todo: update PlayerMoved to new MovementSnapshot format
-        match.onEvent(ReportableEvent.PlayerMoved(runner, pos()))
+        match.onEvent(playerMoved(runner))
         assertEquals(MatchEngine.FailureReason.ALREADY_STARTED, (match.addHunter(player("h")) as MatchEngine.MatchResult.Err).reason)
     }
 
@@ -294,17 +288,14 @@ class MatchEngineTest {
         val runner = player("runner")
         match.setRunner(runner)
         match.prime(emptyList())
-        // todo: update PlayerMoved to new MovementSnapshot format
-        match.onEvent(ReportableEvent.PlayerMoved(player("other"), pos()))
+        match.onEvent(playerMoved(player("other")))
         assertIs<MatchEngine.MatchState.Primed>(match.currentStatus)
     }
 
     @Test
     fun entityDiedWhileIdle_isIgnored() {
         val match = matchEngineFixture().engine
-        match.onEvent(
-            ReportableEvent.EntityDied(null, "minecraft:zombie", pos(), null, null),
-        )
+        match.onEvent(entityDied("minecraft:zombie"))
         assertIs<MatchEngine.MatchState.Idle>(match.currentStatus)
     }
 
@@ -353,9 +344,7 @@ class MatchEngineTest {
         val match = matchEngineFixture().engine
         match.setRunner(player("runner"))
         match.prime(emptyList())
-        match.onEvent(
-            ReportableEvent.EntityDied(null, "minecraft:sheep", pos(), null, null),
-        )
+        match.onEvent(entityDied("minecraft:sheep"))
         assertIs<MatchEngine.MatchState.Primed>(match.currentStatus)
     }
 
@@ -386,15 +375,7 @@ class MatchEngineTest {
         val match = matchEngineFixture().engine
         match.setRunner(player("runner"))
         match.forceStart(emptyList())
-        match.onEvent(
-            ReportableEvent.EntityDied(
-                player = player("mob"),
-                entityIdentifier = "minecraft:zombie",
-                pos = pos(),
-                playerKiller = null,
-                entityKiller = null,
-            ),
-        )
+        match.onEvent(entityDied("minecraft:zombie"))
         assertIs<MatchEngine.MatchState.Active>(match.currentStatus)
     }
 
@@ -407,4 +388,3 @@ class MatchEngineTest {
         assertIs<MatchEngine.MatchState.Idle>(match.currentStatus)
     }
 }
-

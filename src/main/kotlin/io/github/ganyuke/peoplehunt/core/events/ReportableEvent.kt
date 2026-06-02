@@ -1,10 +1,12 @@
 package io.github.ganyuke.peoplehunt.core.events
 
+import io.github.ganyuke.peoplehunt.core.events.models.CurrentLifeData
 import io.github.ganyuke.peoplehunt.core.events.models.FluidState
 import io.github.ganyuke.peoplehunt.core.events.models.KillCause
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import io.github.ganyuke.peoplehunt.core.events.models.Pos4
 import io.github.ganyuke.peoplehunt.core.events.models.TeleportCause
+import io.github.ganyuke.peoplehunt.core.events.models.Velocity
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -68,13 +70,14 @@ sealed class ReportablePayload {
 
     data class InventoryKeyframe(
         val player: MatchPlayer,
-        val contentsHex: String
+        val contents: List<String>,
+        val heldItemSlot: Int,
     ) : ReportablePayload()
 
     data class InventoryDelta(
         val player: MatchPlayer,
         val slot: Int,
-        val itemHex: String
+        val item: String,
     ) : ReportablePayload()
 
     data class MainHandChanged(
@@ -184,7 +187,7 @@ sealed class ReportablePayload {
         val player: MatchPlayer,
         val projectileType: String, // arrow, trident, snowball, etc.
         val launchPos: Pos4,
-        val velocity: , // for path reconstruction
+        val velocity: Velocity, // for path reconstruction
     ) : ReportablePayload()
 
     data class ProjectileHit(
@@ -229,5 +232,33 @@ sealed class ReportablePayload {
 
     data class EndPortalCompleted(
         val pos: Pos4,
+    ) : ReportablePayload()
+
+    // -------------------------------------------------------------------------
+    // POTION EFFECTS
+    // -------------------------------------------------------------------------
+
+    data class PotionEffectApplied(
+        val player: MatchPlayer,
+        val effectType: String,
+        val amplifier: Int,
+        val duration: Int,
+        val cause: String,
+        val reapplication: Boolean,
+    ) : ReportablePayload()
+
+    data class PotionEffectRemoved(
+        val player: MatchPlayer,
+        val effectType: String,
+        val cause: String,
+    ) : ReportablePayload()
+
+    // -------------------------------------------------------------------------
+    // SNAPSHOTS
+    // -------------------------------------------------------------------------
+
+    data class PlayerSnapshotChanged(
+        val player: MatchPlayer,
+        val snapshot: CurrentLifeData,
     ) : ReportablePayload()
 }

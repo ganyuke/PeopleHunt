@@ -17,7 +17,6 @@ class MatchEngine(
     private val outbound: MatchEventBus,
     private val config: PhConfig
 ) {
-    private enum class MatchPhase { IDLE, PRIMED, ACTIVE, FINISHED }
     enum class MatchOutcome { RUNNER_VICTORY, HUNTER_VICTORY, INCONCLUSIVE }
 
     sealed interface MatchState {
@@ -106,12 +105,20 @@ class MatchEngine(
             }
 
             is MatchState.Active -> {
-                if (event.payload is ReportablePayload.EntityDied) when {
-                    event.payload.player isReally currentState.runner ->
-                        endMatch(currentState, MatchOutcome.HUNTER_VICTORY)
+                when (event.payload) {
+                    is ReportablePayload.PlayerDied -> {
+                        if (event.payload.player isReally currentState.runner) {
+                            endMatch(currentState, MatchOutcome.HUNTER_VICTORY)
+                        }
+                    }
 
-                    event.payload.entityIdentifier == "minecraft:ender_dragon" ->
-                        endMatch(currentState, MatchOutcome.RUNNER_VICTORY)
+                    is ReportablePayload.EntityDied -> {
+                        if (event.payload.entityIdentifier == "minecraft:ender_dragon") {
+                            endMatch(currentState, MatchOutcome.RUNNER_VICTORY)
+                        }
+                    }
+
+                    else -> {}
                 }
             }
 

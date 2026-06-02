@@ -13,7 +13,10 @@ import io.github.ganyuke.peoplehunt.paper.events.CompassEventHandler
 import io.github.ganyuke.peoplehunt.paper.listeners.CombatStatsListener
 import io.github.ganyuke.peoplehunt.paper.listeners.CoreListener
 import io.github.ganyuke.peoplehunt.paper.listeners.EndPortalListener
+import io.github.ganyuke.peoplehunt.paper.listeners.InventoryKeyframeListener
 import io.github.ganyuke.peoplehunt.paper.listeners.MilestoneListener
+import io.github.ganyuke.peoplehunt.paper.listeners.PlayerSnapshotPoller
+import io.github.ganyuke.peoplehunt.paper.listeners.PotionEffectListener
 import io.github.ganyuke.peoplehunt.paper.utils.ConfigLoader
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
 import org.bukkit.event.Listener
@@ -52,6 +55,8 @@ class PeopleHunt : JavaPlugin() {
         val broadcastEventHandler = BroadcastEventHandler(reportingEngine)
         
         val compassService = CompassService(outbound)
+        val playerSnapshotPoller = PlayerSnapshotPoller(this, inbound)
+        val inventoryKeyframeListener = InventoryKeyframeListener(this, inbound)
 
         // register listeners on bus that match and compass react to
         registerInbound(listOf(
@@ -65,7 +70,9 @@ class PeopleHunt : JavaPlugin() {
             compassService::onMatchEvent,
             compassEventHandler::onMatchEvent,
             broadcastEventHandler::onMatchEvent,
-            reportingEngine::onMatchEvent
+            reportingEngine::onMatchEvent,
+            playerSnapshotPoller::onMatchEvent,
+            inventoryKeyframeListener::onMatchEvent
         ))
 
         // register Bukkit listeners
@@ -73,7 +80,10 @@ class PeopleHunt : JavaPlugin() {
             CoreListener(inbound),
             MilestoneListener(inbound),
             CombatStatsListener(inbound),
-            EndPortalListener(inbound)
+            EndPortalListener(inbound),
+            PotionEffectListener(inbound),
+            playerSnapshotPoller,
+            inventoryKeyframeListener
         ))
 
         val manager = this.lifecycleManager

@@ -28,9 +28,10 @@ kotlin {
 val coreCoverageClassDirectories = sourceSets.main.get().output.classesDirs.files.map { classesDir ->
     fileTree(classesDir) {
         include("io/github/ganyuke/peoplehunt/core/**")
-        // Sealed event DTOs are covered via bus/service tests; JaCoCo also counts generated accessors.
         exclude("io/github/ganyuke/peoplehunt/core/events/MatchEvent\$*.class")
         exclude("io/github/ganyuke/peoplehunt/core/events/ReportableEvent\$*.class")
+        exclude("io/github/ganyuke/peoplehunt/core/events/ReportablePayload\$*.class")
+        exclude("io/github/ganyuke/peoplehunt/core/events/models/**")
         exclude("**/*\$DefaultImpls.class")
     }
 }

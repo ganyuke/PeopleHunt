@@ -2,8 +2,10 @@ package io.github.ganyuke.peoplehunt.core.services.core
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
-import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.testutil.player
+import io.github.ganyuke.peoplehunt.core.testutil.playerDamagedEntity
+import io.github.ganyuke.peoplehunt.core.testutil.playerMoved
+import io.github.ganyuke.peoplehunt.core.testutil.playerRespawned
 import io.github.ganyuke.peoplehunt.core.testutil.pos
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -20,8 +22,7 @@ class CompassServiceTest {
         val runner = player("runner")
         val hunter = player("hunter")
         service.onMatchEvent(MatchEvent.MatchStart(runner, setOf(hunter)))
-        // todo: update PlayerMoved to new MovementSnapshot format
-        service.onReportableEvent(ReportableEvent.PlayerMoved(runner, pos(1, 2, 3, Uuid.random())))
+        service.onReportableEvent(playerMoved(runner, pos(1, 2, 3, Uuid.random())))
         service.onMatchEvent(MatchEvent.CompassTick)
         assertTrue(events.any { it is MatchEvent.CompassUpdate })
     }
@@ -34,8 +35,7 @@ class CompassServiceTest {
         val service = CompassService(bus)
         val runner = player("runner")
         service.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
-        // todo: update PlayerMoved to new MovementSnapshot format
-        service.onReportableEvent(ReportableEvent.PlayerMoved(player("other"), pos()))
+        service.onReportableEvent(playerMoved(player("other")))
         service.onMatchEvent(MatchEvent.CompassTick)
         assertTrue(events.none { it is MatchEvent.CompassUpdate })
     }
@@ -49,7 +49,7 @@ class CompassServiceTest {
         val runner = player("runner")
         val hunter = player("hunter")
         service.onMatchEvent(MatchEvent.MatchStart(runner, setOf(hunter)))
-        service.onReportableEvent(ReportableEvent.PlayerRespawned(hunter, pos()))
+        service.onReportableEvent(playerRespawned(hunter))
         val give = events.filterIsInstance<MatchEvent.GiveHuntersCompass>().last()
         assertEquals(setOf(hunter.uuid), give.huntersUuids)
     }
@@ -62,7 +62,7 @@ class CompassServiceTest {
         val service = CompassService(bus)
         val runner = player("runner")
         service.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
-        service.onReportableEvent(ReportableEvent.PlayerRespawned(player("stranger"), pos()))
+        service.onReportableEvent(playerRespawned(player("stranger")))
         assertTrue(events.none { it is MatchEvent.GiveHuntersCompass })
     }
 
@@ -75,8 +75,7 @@ class CompassServiceTest {
         val runner = player("runner")
         val world = Uuid.random()
         service.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
-        // todo: update PlayerMoved to new MovementSnapshot format
-        service.onReportableEvent(ReportableEvent.PlayerMoved(runner, pos(0, 0, 0, world)))
+        service.onReportableEvent(playerMoved(runner, pos(0, 0, 0, world)))
         service.onMatchEvent(MatchEvent.MatchEnd(
             MatchEngine.MatchState.Finished(
                 runner,
@@ -107,7 +106,7 @@ class CompassServiceTest {
         val bus = MatchEventBus()
         val service = CompassService(bus)
         service.onReportableEvent(
-            ReportableEvent.PlayerDamagedEntity(player("p"), "minecraft:zombie",1.0),
+            playerDamagedEntity(player("p"), "minecraft:zombie", 1.0),
         )
     }
 
