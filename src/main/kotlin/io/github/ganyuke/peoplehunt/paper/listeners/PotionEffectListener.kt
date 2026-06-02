@@ -2,6 +2,7 @@ package io.github.ganyuke.peoplehunt.paper.listeners
 
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
+import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import io.github.ganyuke.peoplehunt.paper.utils.post
 import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
 import org.bukkit.entity.Player
@@ -9,55 +10,46 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.EntityPotionEffectEvent
+import org.bukkit.event.entity.EntityPotionEffectEvent.Action.*
+import org.bukkit.potion.PotionEffect
 
 class PotionEffectListener(private val inbound: ReportableEventBus) : Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onPotionEffect(event: EntityPotionEffectEvent) {
-        if (event.entity !is Player) return
-        val player = (event.entity as Player).toMatchPlayer()
+        val player = (event.entity as? Player)?.toMatchPlayer() ?: return
         val effectType = event.modifiedType.key.toString()
         val cause = event.cause.name
 
         when (event.action) {
-            EntityPotionEffectEvent.Action.ADDED -> {
-                val effect = event.newEffect ?: return
-                inbound.post(
-                    ReportablePayload.PotionEffectApplied(
-                        player = player,
-                        effectType = effectType,
-                        amplifier = effect.amplifier,
-                        duration = effect.duration,
-                        cause = cause,
-                        reapplication = false,
-                    )
-                )
-            }
+            ADDED -> applyEffect(player, effectType, cause, event.newEffect ?: return, reapplication = false)
+            CHANGED -> if (event.isOverride) applyEffect(
+                player,
+                effectType,
+                cause,
+                event.newEffect ?: return,
+                reapplication = true
+            )
 
-            EntityPotionEffectEvent.Action.CHANGED -> {
-                if (!event.isOverride) return
-                val effect = event.newEffect ?: return
-                inbound.post(
-                    ReportablePayload.PotionEffectApplied(
-                        player = player,
-                        effectType = effectType,
-                        amplifier = effect.amplifier,
-                        duration = effect.duration,
-                        cause = cause,
-                        reapplication = true,
-                    )
-                )
-            }
-
-            EntityPotionEffectEvent.Action.REMOVED,
-            EntityPotionEffectEvent.Action.CLEARED -> {
-                inbound.post(
-                    ReportablePayload.PotionEffectRemoved(
-                        player = player,
-                        effectType = effectType,
-                        cause = cause,
-                    )
-                )
-            }
+            REMOVED, CLEARED -> inbound.post(ReportablePayload.PotionEffectRemoved(player, effectType, cause))
         }
+    }
+
+    private fun applyEffect(
+        player: MatchPlayer,
+        effectType: String,
+        cause: String,
+        effect: PotionEffect,
+        reapplication: Boolean
+    ) {
+        inbound.post(
+            ReportablePayload.PotionEffectApplied(
+                player,
+                effectType,
+                effect.amplifier,
+                effect.duration,
+                cause,
+                reapplication
+            )
+        )
     }
 }

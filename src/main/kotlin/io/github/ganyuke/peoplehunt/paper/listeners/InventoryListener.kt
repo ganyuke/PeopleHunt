@@ -12,13 +12,15 @@ import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerItemHeldEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.inventory.ItemStack
+import org.bukkit.inventory.PlayerInventory
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
 import java.util.Base64
 import java.util.UUID
 
-class InventoryKeyframeListener(
+class InventoryListener(
     private val plugin: JavaPlugin,
     private val inbound: ReportableEventBus,
 ) : Listener {
@@ -107,11 +109,11 @@ class InventoryKeyframeListener(
         )
     }
 
-    private fun serializeInventory(inventory: org.bukkit.inventory.PlayerInventory): List<String> {
+    private fun serializeInventory(inventory: PlayerInventory): List<String> {
         return inventory.contents.map { item -> serializeItem(item) }
     }
 
-    private fun serializeItem(item: org.bukkit.inventory.ItemStack?): String {
+    private fun serializeItem(item: ItemStack?): String {
         if (item == null || item.type.isAir) return ""
         return Base64.getEncoder().encodeToString(item.serializeAsBytes())
     }

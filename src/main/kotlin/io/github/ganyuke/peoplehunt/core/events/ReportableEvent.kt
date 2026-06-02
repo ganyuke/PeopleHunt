@@ -1,9 +1,9 @@
 package io.github.ganyuke.peoplehunt.core.events
 
-import io.github.ganyuke.peoplehunt.core.events.models.CurrentLifeData
 import io.github.ganyuke.peoplehunt.core.events.models.FluidState
 import io.github.ganyuke.peoplehunt.core.events.models.KillCause
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
+import io.github.ganyuke.peoplehunt.core.events.models.PlayerSnapshot
 import io.github.ganyuke.peoplehunt.core.events.models.Pos4
 import io.github.ganyuke.peoplehunt.core.events.models.TeleportCause
 import io.github.ganyuke.peoplehunt.core.events.models.Velocity
@@ -259,6 +259,15 @@ sealed class ReportablePayload {
 
     data class PlayerSnapshotChanged(
         val player: MatchPlayer,
-        val snapshot: CurrentLifeData,
+        val snapshot: PlayerSnapshot,
+    ) : ReportablePayload()
+
+    data class PlayerJoined(
+        val player: MatchPlayer
+    ) : ReportablePayload()
+
+    data class PlayerQuit(
+        val player: MatchPlayer,
+        val reason: String
     ) : ReportablePayload()
 }

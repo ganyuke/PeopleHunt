@@ -27,7 +27,6 @@ import org.bukkit.event.player.PlayerChangedWorldEvent
  * the path sampler.
  */
 class MilestoneListener(private val inbound: ReportableEventBus) : Listener {
-    //    private val entityTypeRegistry = RegistryAccess.registryAccess().getRegistry(RegistryKey.ENTITY_TYPE)
     private val eyeThrowRange = 9.0 // count as player's if thrown within 3 blocks
 
     private fun Material.toMilestoneItem(): SpeedrunMilestone.ItemAcquired.Item? = when (this) {

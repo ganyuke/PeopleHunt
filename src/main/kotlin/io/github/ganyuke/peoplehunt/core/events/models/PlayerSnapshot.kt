@@ -21,18 +21,19 @@ data class SpatialData(
     val position: Pos4,
     val yaw: Float,
     val pitch: Float,
+    val velocity: Velocity
 )
 
 data class Vitals(
     val health: Double,
     val maxHealth: Double,
     val foodLevel: Int,
-    val saturation: Double,
+    val saturation: Float,
     val absorption: Double,
     val remainingAir: Int,
     val maxAir: Int,
     val experienceLevel: Int,
-    val experienceProgress: Double,
+    val experienceProgress: Float,
     val totalXpPoints: Int,
 )
 

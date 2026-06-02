@@ -9,8 +9,11 @@ import io.github.ganyuke.peoplehunt.core.events.models.CurrentStates
 import io.github.ganyuke.peoplehunt.core.events.models.EnvironmentFlags
 import io.github.ganyuke.peoplehunt.core.events.models.LifeMetadata
 import io.github.ganyuke.peoplehunt.core.events.models.MovementFlags
+import io.github.ganyuke.peoplehunt.core.events.models.OnlineState
+import io.github.ganyuke.peoplehunt.core.events.models.PlayerSnapshot
 import io.github.ganyuke.peoplehunt.core.events.models.Pos4
 import io.github.ganyuke.peoplehunt.core.events.models.SpatialData
+import io.github.ganyuke.peoplehunt.core.events.models.Velocity
 import io.github.ganyuke.peoplehunt.core.events.models.Vitals
 import io.github.ganyuke.peoplehunt.paper.utils.environmentSnapshot
 import io.github.ganyuke.peoplehunt.paper.utils.post
@@ -38,6 +41,8 @@ class PlayerSnapshotPoller(
         when (event) {
             is MatchEvent.MatchStart -> {
                 matchActive = true
+                // even if they're not part of the match, it's cool to see
+                // who else was watching, if they were a spectator or not.
                 plugin.server.onlinePlayers.forEach { startPolling(it) }
             }
 
@@ -53,11 +58,20 @@ class PlayerSnapshotPoller(
 
     @EventHandler
     fun onPlayerJoin(event: PlayerJoinEvent) {
+        val payload = ReportablePayload.PlayerJoined(event.player.toMatchPlayer())
+        inbound.post(payload)
+
         if (matchActive) startPolling(event.player)
     }
 
     @EventHandler
     fun onPlayerQuit(event: PlayerQuitEvent) {
+        val player = event.player
+        val matchPlayer = player.toMatchPlayer()
+
+        inbound.post(ReportablePayload.PlayerSnapshotChanged(matchPlayer, player.snapshot()))
+        inbound.post(ReportablePayload.PlayerQuit(matchPlayer, event.reason.name))
+
         stopPolling(event.player.uniqueId)
     }
 
@@ -65,16 +79,11 @@ class PlayerSnapshotPoller(
         activeTasks.remove(player.uniqueId)?.cancel()
         activeTasks[player.uniqueId] = object : BukkitRunnable() {
             override fun run() {
-                if (!player.isOnline) {
-                    cancel()
-                    return
-                }
-                inbound.post(
-                    ReportablePayload.PlayerSnapshotChanged(
-                        player = player.toMatchPlayer(),
-                        snapshot = readPlayerState(player),
-                    )
+                val payload = ReportablePayload.PlayerSnapshotChanged(
+                    player = player.toMatchPlayer(),
+                    snapshot = player.snapshot()
                 )
+                inbound.post(payload)
             }
         }.runTaskTimer(plugin, 0L, 1L)
     }
@@ -83,11 +92,17 @@ class PlayerSnapshotPoller(
         activeTasks.remove(uuid)?.cancel()
     }
 
-    private fun readPlayerState(player: Player): CurrentLifeData {
+    private fun Player.snapshot(): PlayerSnapshot {
+        val player = this
+
+        if (!player.isOnline) return PlayerSnapshot.Offline
+
+        if (player.isDead) return PlayerSnapshot.Online(OnlineState.Dead)
+
         val loc = player.location
         val env = player.environmentSnapshot()
 
-        return CurrentLifeData(
+        val lifeSnapshot = CurrentLifeData(
             spatialData = SpatialData(
                 position = Pos4(
                     x = loc.blockX,
@@ -97,17 +112,18 @@ class PlayerSnapshotPoller(
                 ),
                 yaw = loc.yaw,
                 pitch = loc.pitch,
+                velocity = Velocity(player.velocity.x, player.velocity.y, player.velocity.z)
             ),
             vitals = Vitals(
                 health = player.health,
                 maxHealth = player.getAttribute(Attribute.MAX_HEALTH)?.value ?: 20.0,
                 foodLevel = player.foodLevel,
-                saturation = player.saturation.toDouble(),
+                saturation = player.saturation,
                 absorption = player.absorptionAmount,
                 remainingAir = player.remainingAir,
                 maxAir = player.maximumAir,
                 experienceLevel = player.level,
-                experienceProgress = player.exp.toDouble(),
+                experienceProgress = player.exp,
                 totalXpPoints = player.totalExperience,
             ),
             currentStates = CurrentStates(
@@ -146,5 +162,7 @@ class PlayerSnapshotPoller(
                 },
             ),
         )
+
+        return PlayerSnapshot.Online(OnlineState.Alive(lifeSnapshot))
     }
 }

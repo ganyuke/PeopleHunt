@@ -14,7 +14,7 @@ import io.github.ganyuke.peoplehunt.paper.listeners.CombatStatsListener
 import io.github.ganyuke.peoplehunt.paper.listeners.CoreListener
 import io.github.ganyuke.peoplehunt.paper.listeners.EndPortalListener
 import io.github.ganyuke.peoplehunt.paper.listeners.FluidListener
-import io.github.ganyuke.peoplehunt.paper.listeners.InventoryKeyframeListener
+import io.github.ganyuke.peoplehunt.paper.listeners.InventoryListener
 import io.github.ganyuke.peoplehunt.paper.listeners.MilestoneListener
 import io.github.ganyuke.peoplehunt.paper.listeners.PlayerSnapshotPoller
 import io.github.ganyuke.peoplehunt.paper.listeners.PotionEffectListener
@@ -59,7 +59,7 @@ class PeopleHunt : JavaPlugin() {
         
         val compassService = CompassService(outbound)
         val playerSnapshotPoller = PlayerSnapshotPoller(this, inbound)
-        val inventoryKeyframeListener = InventoryKeyframeListener(this, inbound)
+        val inventoryListener = InventoryListener(this, inbound)
 
         // register listeners on bus that match and compass react to
         registerInbound(listOf(
@@ -75,7 +75,7 @@ class PeopleHunt : JavaPlugin() {
             broadcastEventHandler::onMatchEvent,
             reportingEngine::onMatchEvent,
             playerSnapshotPoller::onMatchEvent,
-            inventoryKeyframeListener::onMatchEvent
+            inventoryListener::onMatchEvent
         ))
 
         // register Bukkit listeners
@@ -89,7 +89,7 @@ class PeopleHunt : JavaPlugin() {
             TeleportListener(inbound),
             FluidListener(this, inbound),
             playerSnapshotPoller,
-            inventoryKeyframeListener
+            inventoryListener
         ))
 
         val manager = this.lifecycleManager
