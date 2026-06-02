@@ -13,10 +13,13 @@ import io.github.ganyuke.peoplehunt.paper.events.CompassEventHandler
 import io.github.ganyuke.peoplehunt.paper.listeners.CombatStatsListener
 import io.github.ganyuke.peoplehunt.paper.listeners.CoreListener
 import io.github.ganyuke.peoplehunt.paper.listeners.EndPortalListener
+import io.github.ganyuke.peoplehunt.paper.listeners.FluidListener
 import io.github.ganyuke.peoplehunt.paper.listeners.InventoryKeyframeListener
 import io.github.ganyuke.peoplehunt.paper.listeners.MilestoneListener
 import io.github.ganyuke.peoplehunt.paper.listeners.PlayerSnapshotPoller
 import io.github.ganyuke.peoplehunt.paper.listeners.PotionEffectListener
+import io.github.ganyuke.peoplehunt.paper.listeners.StructureListener
+import io.github.ganyuke.peoplehunt.paper.listeners.TeleportListener
 import io.github.ganyuke.peoplehunt.paper.utils.ConfigLoader
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
 import org.bukkit.event.Listener
@@ -82,6 +85,9 @@ class PeopleHunt : JavaPlugin() {
             CombatStatsListener(inbound),
             EndPortalListener(inbound),
             PotionEffectListener(inbound),
+            StructureListener(inbound),
+            TeleportListener(inbound),
+            FluidListener(this, inbound),
             playerSnapshotPoller,
             inventoryKeyframeListener
         ))
