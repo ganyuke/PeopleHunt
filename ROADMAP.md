@@ -129,10 +129,10 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 **Goal:** Record damage and status afflicting players.
 
 * [x] **Environmental flags on snapshots** (`PlayerEnvironment`: `EnvironmentFlags` on `PlayerSnapshotChanged`).
-* [ ] **Fluid enter/exit events**
-* [ ] **Environmental tick windows** (first/last tick for drowning, suffocation, lava, etc.).
+* [x] **Fluid enter/exit events**
+* [x] **Environmental tick windows** (first/last tick for drowning, suffocation, lava, etc.). Data collected via `PlayerDamagedByEnvironment` with windows reconstructed in frontend.
 * [x] **Potion apply / remove / reapply** (`PotionEffectListener`).
-* [ ] **Effect clear attribution** (milk, water bucket, etc.`).
+* [x] **Effect clear attribution** (milk, water bucket, etc.) — cause string tracked in `PotionEffectRemoved`.
 
 ### Implementation details
 
