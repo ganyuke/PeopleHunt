@@ -20,9 +20,6 @@ object StructureLocator {
             }
         }
 
-    fun getStructureAt(pos: Location): String? =
-        findMatchingChunkStructure(pos)?.structure?.let(::getStructureKeyString)
-
     fun getStructureInfoAt(pos: Location): StructureInfo? {
         val chunkStructure = findMatchingChunkStructure(pos) ?: return null
         val name = getStructureKeyString(chunkStructure.structure) ?: return null
