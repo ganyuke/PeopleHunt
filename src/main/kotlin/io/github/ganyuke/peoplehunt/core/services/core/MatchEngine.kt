@@ -10,7 +10,6 @@ import io.github.ganyuke.peoplehunt.core.ports.TaskHandle
 import io.github.ganyuke.peoplehunt.core.utils.*
 import kotlin.time.Clock
 import kotlin.time.Instant
-import kotlin.uuid.Uuid
 
 class MatchEngine(
     private val scheduler: SchedulerPort,
@@ -64,8 +63,6 @@ class MatchEngine(
         PLAYER_NOT_IN_GROUP,
     }
 
-    val matchId: Uuid = Uuid.random()
-
     private val matchIntervalService: MatchIntervalService = MatchIntervalService(config, scheduler, outbound)
     private val tasks = mutableListOf<TaskHandle>()
 
@@ -100,7 +97,7 @@ class MatchEngine(
         when (val currentState = currentStatus) {
             // start match when runner moves and match was primed
             is MatchState.Primed -> {
-                if (event.payload is ReportablePayload.PlayerMoved && event.payload.player isReally currentState.runner)
+                if (event.payload is ReportablePayload.PlayerMovedByBlock && event.payload.player isReally currentState.runner)
                     startMatch(currentState.runner, currentState.hunters)
             }
 

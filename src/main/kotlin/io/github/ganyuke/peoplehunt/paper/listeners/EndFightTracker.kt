@@ -32,7 +32,6 @@ class EndFightTracker(
                 matchActive = true
                 endDiscovered = false
                 knownCrystals.clear()
-                startPolling()
             }
 
             is MatchEvent.MatchEnd -> {
@@ -53,6 +52,7 @@ class EndFightTracker(
             val payload = event.payload
             if (payload.to == "minecraft:the_end" && !endDiscovered) {
                 discoverEndCrystals()
+                startPolling()
             }
         }
     }
@@ -93,14 +93,14 @@ class EndFightTracker(
         pollTask = object : BukkitRunnable() {
             override fun run() {
                 val endWorld = plugin.server.worlds.firstOrNull { it.environment == World.Environment.THE_END } ?: return
-                val dragon = endWorld.entities.filterIsInstance<EnderDragon>().firstOrNull() ?: return
+                val dragon = endWorld.entities.firstOrNull { it is EnderDragon } as? EnderDragon ?: return
                 if (!dragon.isValid) return
 
                 inbound.post(
                     ReportablePayload.DragonSnapshot(
                         pos = dragon.location.toPos4(),
                         health = dragon.health.coerceAtLeast(0.0),
-                        maxHealth = dragon.getAttribute(Attribute.MAX_HEALTH)?.value ?: 300.0,
+                        maxHealth = dragon.getAttribute(Attribute.MAX_HEALTH)?.value ?: 200.0,
                     )
                 )
             }

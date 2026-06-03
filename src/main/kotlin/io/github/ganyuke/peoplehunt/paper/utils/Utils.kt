@@ -8,7 +8,6 @@ import io.github.ganyuke.peoplehunt.core.events.models.Pos4
 import org.bukkit.Bukkit
 import org.bukkit.Location
 import org.bukkit.entity.Player
-import org.bukkit.event.player.PlayerMoveEvent
 import kotlin.uuid.toJavaUuid
 import kotlin.uuid.toKotlinUuid
 
@@ -26,18 +25,6 @@ fun Location.toPos4(): Pos4 = Pos4(blockX, blockY, blockZ, world.uid.toKotlinUui
 fun Player.toMatchPlayer() = MatchPlayer(
     uuid = this.uniqueId.toKotlinUuid(),
     name = this.name
-)
-
-fun PlayerMoveEvent.toSnapshot() = ReportablePayload.PlayerMoved(
-    this.player.toMatchPlayer(),
-    this.to.toPos4(),
-    this.to.yaw,
-    this.to.pitch,
-    this.player.isSprinting,
-    this.player.isSneaking,
-    this.player.isFlying,
-    this.player.isSwimming,
-    this.player.isGliding
 )
 
 fun ReportableEventBus.post(payload: ReportablePayload) = this.post(

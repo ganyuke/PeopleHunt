@@ -3,18 +3,7 @@ package io.github.ganyuke.peoplehunt.paper.listeners
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
-import io.github.ganyuke.peoplehunt.core.events.models.ActivePotionEffect
-import io.github.ganyuke.peoplehunt.core.events.models.CurrentLifeData
-import io.github.ganyuke.peoplehunt.core.events.models.CurrentStates
-import io.github.ganyuke.peoplehunt.core.events.models.EnvironmentFlags
-import io.github.ganyuke.peoplehunt.core.events.models.LifeMetadata
-import io.github.ganyuke.peoplehunt.core.events.models.MovementFlags
-import io.github.ganyuke.peoplehunt.core.events.models.OnlineState
-import io.github.ganyuke.peoplehunt.core.events.models.PlayerSnapshot
-import io.github.ganyuke.peoplehunt.core.events.models.Pos4
-import io.github.ganyuke.peoplehunt.core.events.models.SpatialData
-import io.github.ganyuke.peoplehunt.core.events.models.Velocity
-import io.github.ganyuke.peoplehunt.core.events.models.Vitals
+import io.github.ganyuke.peoplehunt.core.events.models.*
 import io.github.ganyuke.peoplehunt.paper.utils.environmentSnapshot
 import io.github.ganyuke.peoplehunt.paper.utils.post
 import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
@@ -27,8 +16,8 @@ import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitRunnable
 import org.bukkit.scheduler.BukkitTask
+import java.util.*
 import kotlin.uuid.toKotlinUuid
-import java.util.UUID
 
 class PlayerSnapshotPoller(
     private val plugin: JavaPlugin,

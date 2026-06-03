@@ -6,7 +6,6 @@ import io.github.ganyuke.peoplehunt.core.events.models.KillCause
 import io.github.ganyuke.peoplehunt.paper.utils.post
 import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
 import io.github.ganyuke.peoplehunt.paper.utils.toPos4
-import io.github.ganyuke.peoplehunt.paper.utils.toSnapshot
 import net.kyori.adventure.text.minimessage.MiniMessage
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
@@ -23,9 +22,19 @@ import org.bukkit.event.player.PlayerRespawnEvent
 class CoreListener(private val inbound: ReportableEventBus) : Listener {
     val mm = MiniMessage.miniMessage()
 
+    /**
+     * listener function solely for runenr compass updates
+     * and prime on start
+     */
     @EventHandler
-    fun onMove(event: PlayerMoveEvent) {
-        inbound.post(event.toSnapshot())
+    fun onMoveByBlock(event: PlayerMoveEvent) {
+        if (!event.hasChangedBlock()) return // more chaotic this way
+
+        inbound.post(ReportablePayload.PlayerMovedByBlock(
+            event.player.toMatchPlayer(),
+            event.to.toPos4(),
+            event.player.isSneaking
+        ))
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

@@ -1,18 +1,26 @@
 package io.github.ganyuke.peoplehunt.core.testutil
 
-import io.github.ganyuke.peoplehunt.core.events.MobSnapshot
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
-import io.github.ganyuke.peoplehunt.core.events.SpawnType
+import io.github.ganyuke.peoplehunt.core.events.models.CurrentLifeData
+import io.github.ganyuke.peoplehunt.core.events.models.CurrentStates
+import io.github.ganyuke.peoplehunt.core.events.models.EnvironmentFlags
 import io.github.ganyuke.peoplehunt.core.events.models.FluidState
 import io.github.ganyuke.peoplehunt.core.events.models.KillCause
+import io.github.ganyuke.peoplehunt.core.events.models.LifeMetadata
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
+import io.github.ganyuke.peoplehunt.core.events.models.MobSnapshot
+import io.github.ganyuke.peoplehunt.core.events.models.MovementFlags
+import io.github.ganyuke.peoplehunt.core.events.models.OnlineState.Alive
+import io.github.ganyuke.peoplehunt.core.events.models.PlayerSnapshot
 import io.github.ganyuke.peoplehunt.core.events.models.Pos4
+import io.github.ganyuke.peoplehunt.core.events.models.SpatialData
 import io.github.ganyuke.peoplehunt.core.events.models.TeleportCause
 import io.github.ganyuke.peoplehunt.core.events.models.Velocity
+import io.github.ganyuke.peoplehunt.core.events.models.Vitals
+import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
-import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 
 private const val DEFAULT_TICK = 0
 
@@ -23,7 +31,7 @@ fun playerMoved(
     pitch: Float = 0f,
 ) = ReportableEvent(
     tick = DEFAULT_TICK,
-    payload = ReportablePayload.PlayerMoved(
+    payload = ReportablePayload.PlayerMovedByBlock(
         player = player,
         pos = pos,
         yaw = yaw,
@@ -191,16 +199,16 @@ fun playerSnapshotChanged(player: MatchPlayer) = ReportableEvent(
     tick = DEFAULT_TICK,
     payload = ReportablePayload.PlayerSnapshotChanged(
         player = player,
-        snapshot = io.github.ganyuke.peoplehunt.core.events.models.PlayerSnapshot.Online(
-            io.github.ganyuke.peoplehunt.core.events.models.OnlineState.Alive(
-                io.github.ganyuke.peoplehunt.core.events.models.CurrentLifeData(
-                    spatialData = io.github.ganyuke.peoplehunt.core.events.models.SpatialData(
+        snapshot = PlayerSnapshot.Online(
+            Alive(
+                CurrentLifeData(
+                    spatialData = SpatialData(
                         position = pos(),
                         yaw = 0f,
                         pitch = 0f,
                         velocity = Velocity(0.0, 0.0, 0.0),
                     ),
-                    vitals = io.github.ganyuke.peoplehunt.core.events.models.Vitals(
+                    vitals = Vitals(
                         health = 20.0,
                         maxHealth = 20.0,
                         foodLevel = 20,
@@ -212,8 +220,8 @@ fun playerSnapshotChanged(player: MatchPlayer) = ReportableEvent(
                         experienceProgress = 0.0f,
                         totalXpPoints = 0,
                     ),
-                    currentStates = io.github.ganyuke.peoplehunt.core.events.models.CurrentStates(
-                        environmentFlags = io.github.ganyuke.peoplehunt.core.events.models.EnvironmentFlags(
+                    currentStates = CurrentStates(
+                        environmentFlags = EnvironmentFlags(
                             isBurning = false,
                             isDrowning = false,
                             isSuffocating = false,
@@ -225,7 +233,7 @@ fun playerSnapshotChanged(player: MatchPlayer) = ReportableEvent(
                             isInsideCobweb = false,
                             isInsideSweetBerry = false,
                         ),
-                        movementFlags = io.github.ganyuke.peoplehunt.core.events.models.MovementFlags(
+                        movementFlags = MovementFlags(
                             isSleeping = false,
                             isRiptiding = false,
                             isClimbing = false,
@@ -237,7 +245,7 @@ fun playerSnapshotChanged(player: MatchPlayer) = ReportableEvent(
                         ),
                         ridingVehicle = "none",
                     ),
-                    metadata = io.github.ganyuke.peoplehunt.core.events.models.LifeMetadata(
+                    metadata = LifeMetadata(
                         gameMode = "SURVIVAL",
                         activePotionEffects = emptyList(),
                     ),
@@ -445,7 +453,7 @@ fun worldSpawnRecorded(pos: Pos4 = pos()) = ReportableEvent(
 fun playerSetSpawn(
     player: MatchPlayer,
     pos: Pos4 = pos(),
-    spawnType: SpawnType = SpawnType.BED,
+    spawnType: String = "BED",
 ) = ReportableEvent(
     tick = DEFAULT_TICK,
     payload = ReportablePayload.PlayerSetSpawn(player, pos, spawnType),

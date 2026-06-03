@@ -2,11 +2,7 @@ package io.github.ganyuke.peoplehunt.core.services.core
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
-import io.github.ganyuke.peoplehunt.core.testutil.player
-import io.github.ganyuke.peoplehunt.core.testutil.playerDamagedEntity
-import io.github.ganyuke.peoplehunt.core.testutil.playerMoved
-import io.github.ganyuke.peoplehunt.core.testutil.playerRespawned
-import io.github.ganyuke.peoplehunt.core.testutil.pos
+import io.github.ganyuke.peoplehunt.core.testutil.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

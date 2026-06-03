@@ -16,7 +16,7 @@ class CompassService(private val outbound: MatchEventBus) {
     fun onReportableEvent(event: ReportableEvent) : Unit =
         when (val payload = event.payload) {
             // feature: update tracked position on runner movement in dimension
-            is ReportablePayload.PlayerMoved -> {
+            is ReportablePayload.PlayerMovedByBlock -> {
                 if (payload.player.uuid != runnerUuid) return
 
                 runnerDim = payload.pos.w

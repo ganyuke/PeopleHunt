@@ -1,22 +1,16 @@
 package io.github.ganyuke.peoplehunt.paper.listeners
 
+import com.destroystokyo.paper.event.player.PlayerSetSpawnEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
-import io.github.ganyuke.peoplehunt.core.events.SpawnType
 import io.github.ganyuke.peoplehunt.paper.utils.post
 import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
 import io.github.ganyuke.peoplehunt.paper.utils.toPos4
 import org.bukkit.Bukkit
-import org.bukkit.Material
-import org.bukkit.block.data.type.RespawnAnchor
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
-import org.bukkit.event.block.Action
-import org.bukkit.event.player.PlayerBedEnterEvent
-import org.bukkit.event.player.PlayerBedEnterEvent.BedEnterResult
-import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.world.PortalCreateEvent
 
 class LandmarkTracker(private val inbound: ReportableEventBus) : Listener {
@@ -61,32 +55,14 @@ class LandmarkTracker(private val inbound: ReportableEventBus) : Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onBedEnter(event: PlayerBedEnterEvent) {
-        if (event.bedEnterResult != BedEnterResult.OK) return
-        val bed = event.bed
-        inbound.post(
-            ReportablePayload.PlayerSetSpawn(
-                player = event.player.toMatchPlayer(),
-                pos = bed.location.toPos4(),
-                spawnType = SpawnType.BED,
-            )
-        )
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onRespawnAnchorInteract(event: PlayerInteractEvent) {
-        if (event.action != Action.RIGHT_CLICK_BLOCK) return
-        val block = event.clickedBlock ?: return
-        if (block.type != Material.RESPAWN_ANCHOR) return
-
-        val anchorData = block.blockData as? RespawnAnchor ?: return
-        if (anchorData.charges <= 0) return
+    fun onSetSpawn(event: PlayerSetSpawnEvent) {
+        val location = event.location ?: return
 
         inbound.post(
             ReportablePayload.PlayerSetSpawn(
                 player = event.player.toMatchPlayer(),
-                pos = block.location.toPos4(),
-                spawnType = SpawnType.RESPAWN_ANCHOR,
+                pos = location.toPos4(),
+                spawnType = event.cause.toString(),
             )
         )
     }

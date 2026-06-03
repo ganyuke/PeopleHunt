@@ -4,18 +4,7 @@ import io.github.ganyuke.peoplehunt.core.events.models.KillCause
 import io.github.ganyuke.peoplehunt.core.events.models.Pos4
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
-import io.github.ganyuke.peoplehunt.core.testutil.entityDied
-import io.github.ganyuke.peoplehunt.core.testutil.endPortalCompleted
-import io.github.ganyuke.peoplehunt.core.testutil.player
-import io.github.ganyuke.peoplehunt.core.testutil.playerAcquiredItem
-import io.github.ganyuke.peoplehunt.core.testutil.playerChangedDimension
-import io.github.ganyuke.peoplehunt.core.testutil.playerDamagedByEntity
-import io.github.ganyuke.peoplehunt.core.testutil.playerDamagedEntity
-import io.github.ganyuke.peoplehunt.core.testutil.playerFilledBucket
-import io.github.ganyuke.peoplehunt.core.testutil.playerMoved
-import io.github.ganyuke.peoplehunt.core.testutil.playerRespawned
-import io.github.ganyuke.peoplehunt.core.testutil.playerThrewEnderEye
-import io.github.ganyuke.peoplehunt.core.testutil.pos
+import io.github.ganyuke.peoplehunt.core.testutil.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -60,7 +49,7 @@ class CoreEventsTest {
         )
 
         val pm = playerMoved(p, location)
-        assertEquals(p, (pm.payload as ReportablePayload.PlayerMoved).player)
+        assertEquals(p, (pm.payload as ReportablePayload.PlayerMovedByBlock).player)
 
         val pr = playerRespawned(p, location)
         assertEquals(p, (pr.payload as ReportablePayload.PlayerRespawned).player)

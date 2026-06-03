@@ -19,13 +19,9 @@ fun matchEngineFixture(
 
 data class ReportingEngineFixture(
     val engine: ReportingEngine,
-    val scheduler: FakeScheduler,
-    val bus: MatchEventBus,
     val logger: FakeLogger,
 )
 
 fun reportingEngineFixture(
-    scheduler: FakeScheduler = FakeScheduler(),
-    bus: MatchEventBus = MatchEventBus(),
     logger: FakeLogger = FakeLogger()
-) = ReportingEngineFixture(ReportingEngine(bus, scheduler, logger), scheduler, bus, logger)
+) = ReportingEngineFixture(ReportingEngine(logger), logger)

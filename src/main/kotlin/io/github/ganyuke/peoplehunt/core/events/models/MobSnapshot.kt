@@ -5,7 +5,10 @@ import kotlinx.serialization.Serializable
 import kotlin.uuid.Uuid
 
 @Serializable
-data class MatchPlayer(
-    @Contextual val uuid: Uuid,
-    val name: String
+data class MobSnapshot(
+    @Contextual val entityUuid: Uuid,
+    val pos: Pos4,
+    val entityType: String,
+    val health: Double,
+    val distance: Double,
 )

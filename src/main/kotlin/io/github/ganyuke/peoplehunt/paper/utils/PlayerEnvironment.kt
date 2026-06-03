@@ -1,9 +1,9 @@
 package io.github.ganyuke.peoplehunt.paper.utils
 
 import io.github.ganyuke.peoplehunt.core.events.models.FluidState
+import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.block.Block
-import org.bukkit.Location
 import org.bukkit.entity.Player
 import kotlin.time.Instant
 
@@ -65,7 +65,7 @@ fun Player.environmentSnapshot(): PlayerEnvironmentSnapshot {
 
 /**
  * Java Edition suffocation: the eyeline must intersect a block's collision shape.
- * See [BlockData.getCollisionShape] and [VoxelShape.getBoundingBoxes].
+ * See [org.bukkit.block.data.BlockData.getCollisionShape] and [org.bukkit.util.VoxelShape.getBoundingBoxes].
  */
 private fun Location.isInsideSuffocatingBlock(): Boolean {
     val block = block

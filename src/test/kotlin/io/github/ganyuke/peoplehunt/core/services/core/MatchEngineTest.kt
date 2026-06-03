@@ -2,23 +2,15 @@ package io.github.ganyuke.peoplehunt.core.services.core
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
-import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.core.events.models.KillCause
-import io.github.ganyuke.peoplehunt.core.testutil.entityDied
-import io.github.ganyuke.peoplehunt.core.testutil.matchEngineFixture
-import io.github.ganyuke.peoplehunt.core.testutil.player
-import io.github.ganyuke.peoplehunt.core.testutil.playerDied
-import io.github.ganyuke.peoplehunt.core.testutil.playerMoved
-import io.github.ganyuke.peoplehunt.core.testutil.pos
-import io.github.ganyuke.peoplehunt.core.testutil.testPhConfig
-import kotlin.time.Duration.Companion.milliseconds
+import io.github.ganyuke.peoplehunt.core.testutil.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
-import kotlin.uuid.Uuid
+import kotlin.time.Duration.Companion.milliseconds
 
 class MatchEngineTest {
     private fun collectEvents(bus: MatchEventBus): MutableList<MatchEvent> {
@@ -302,8 +294,9 @@ class MatchEngineTest {
     @Test
     fun matchId_isStable() {
         val match = matchEngineFixture().engine
-        assertEquals(match.matchId, match.matchId)
-        assertTrue(match.matchId != Uuid.NIL)
+        val firstId = match.currentStatus.runner?.uuid
+        val secondId = match.currentStatus.runner?.uuid
+        assertEquals(firstId, secondId)
     }
 
     @Test

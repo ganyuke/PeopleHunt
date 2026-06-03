@@ -9,7 +9,7 @@ import io.github.ganyuke.peoplehunt.paper.utils.toPos4
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerMoveEvent
-import java.util.UUID
+import java.util.*
 
 class StructureListener(private val inbound: ReportableEventBus) : Listener {
     val diffChecker = HashMap<UUID, String?>()

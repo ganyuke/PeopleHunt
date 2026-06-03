@@ -1,9 +1,9 @@
 package io.github.ganyuke.peoplehunt.paper.listeners
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
-import io.github.ganyuke.peoplehunt.core.events.MobSnapshot
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
+import io.github.ganyuke.peoplehunt.core.events.models.MobSnapshot
 import io.github.ganyuke.peoplehunt.paper.utils.post
 import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
 import io.github.ganyuke.peoplehunt.paper.utils.toPos4

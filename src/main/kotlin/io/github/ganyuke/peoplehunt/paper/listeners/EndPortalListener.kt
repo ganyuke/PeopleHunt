@@ -1,12 +1,10 @@
 package io.github.ganyuke.peoplehunt.paper.listeners
 
-import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.paper.utils.post
 import io.github.ganyuke.peoplehunt.paper.utils.toPos4
 import org.bukkit.Location
-
 import org.bukkit.Material
 import org.bukkit.block.Block
 import org.bukkit.block.data.type.EndPortalFrame
