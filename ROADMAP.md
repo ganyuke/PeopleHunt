@@ -147,25 +147,32 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 ### Player economy
 
 * [x] **Inventory keyframes and deltas** (`InventoryKeyframeListener`).
-* [ ] **Crafting Lifecycle:** Record items crafted, items repaired (via anvil/crafting), and tool break events.
-* [ ] **Food Tracking:** Record food items consumed, surface total hunger and saturation values of food item in UI.
+* [x] **Crafting Lifecycle:** Record items crafted, items repaired (via anvil/crafting), and tool break events.
+* [x] **Food Tracking:** Record food items consumed, surface total hunger and saturation values of food item in UI.
 
 ### PvE combat tracking
 
-* [ ] **Mob Tracking:** Track the positions of nearby mobs relative to players and record any mob deaths.
+* [x] **Mob Tracking:** Track the positions of nearby mobs relative to players and record any mob deaths.
 
 ### Landmarks
 
-* [ ] **Landmarks:** Record world spawns, constructed Nether and End Portals (event on construction completion).
+* [x] **Landmarks:** Record world spawns, constructed Nether and End Portals (event on construction completion).
 * [x] **Structure enter/exit events**
-* [ ] **Global structure first-visit map**
-* [ ] **Respawn locations:** Record respawn locations per player (event on spawn set, removed from map when player changes spawn).
+* [x] **Global structure first-visit map**
+* [x] **Respawn locations:** Record respawn locations per player (event on spawn set, removed from map when player changes spawn).
 
 ### Implementation details
 
 * Will probably use a window to group together crafting events to prevent spamming the logs creating a crap ton of sticks.
 * In UI, probably need to de-duplicate shared spawn locations. Also need to figure out how to handle broken beds/respawn anchors in UI.
 * `EndPortalCompleted` already fired from `EndPortalListener` when portal frame is completed.
+* `CraftingListener` records `CraftItemEvent` (any item), `PlayerItemBreakEvent`, and anvil repair via `InventoryClickEvent` on anvil result slot, filtering out renames.
+* `FoodTracker` records consumed items via `PlayerItemConsumeEvent`, extracting nutrition/saturation from `FoodProperties` via `item.getData(DataComponentTypes.FOOD)`.
+* `MobTracker` polls nearby living entities (non-player) in 16-block radius every 40 ticks per player while match is active.
+* `LandmarkTracker` records world spawn on match start, nether portal construction via `PortalCreateEvent`, and player spawn setting (beds + respawn anchors).
+* `StructureLocator` resolves structure center via bounding box midpoint; `PlayerEnteredStructure` now carries both structure name and center position.
+* `StructureVisitTracker` is a core sub-service of `ReportingEngine` (alongside `MilestoneTracker` and `CombatStatsTracker`). Deduplicates by `(structureIdentifier, center)`. First-visit is logged directly from `handlePlayerEnteredStructure`.
+* Spawn removal (broken beds, destroyed anchors) not yet tracked.
 
 ---
 

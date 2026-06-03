@@ -12,12 +12,17 @@ import io.github.ganyuke.peoplehunt.paper.events.BroadcastEventHandler
 import io.github.ganyuke.peoplehunt.paper.events.CompassEventHandler
 import io.github.ganyuke.peoplehunt.paper.listeners.CombatStatsListener
 import io.github.ganyuke.peoplehunt.paper.listeners.CoreListener
+import io.github.ganyuke.peoplehunt.paper.listeners.CraftingListener
 import io.github.ganyuke.peoplehunt.paper.listeners.EndFightTracker
 import io.github.ganyuke.peoplehunt.paper.listeners.EndPortalListener
 import io.github.ganyuke.peoplehunt.paper.listeners.EnvironmentDamageListener
 import io.github.ganyuke.peoplehunt.paper.listeners.FluidListener
+import io.github.ganyuke.peoplehunt.paper.listeners.FoodTracker
+import io.github.ganyuke.peoplehunt.paper.listeners.HealthRegainListener
 import io.github.ganyuke.peoplehunt.paper.listeners.InventoryListener
+import io.github.ganyuke.peoplehunt.paper.listeners.LandmarkTracker
 import io.github.ganyuke.peoplehunt.paper.listeners.MilestoneListener
+import io.github.ganyuke.peoplehunt.paper.listeners.MobTracker
 import io.github.ganyuke.peoplehunt.paper.listeners.PlayerSnapshotPoller
 import io.github.ganyuke.peoplehunt.paper.listeners.ProjectileTracker
 import io.github.ganyuke.peoplehunt.paper.listeners.PotionEffectListener
@@ -65,6 +70,10 @@ class PeopleHunt : JavaPlugin() {
         val inventoryListener = InventoryListener(this, inbound)
         val projectileTracker = ProjectileTracker(this, inbound)
         val endFightTracker = EndFightTracker(this, inbound)
+        val craftingListener = CraftingListener(inbound)
+        val foodTracker = FoodTracker(inbound)
+        val mobTracker = MobTracker(this, inbound)
+        val landmarkTracker = LandmarkTracker(inbound)
 
         // register listeners on bus that match and compass react to
         registerInbound(listOf(
@@ -84,6 +93,8 @@ class PeopleHunt : JavaPlugin() {
             inventoryListener::onMatchEvent,
             projectileTracker::onMatchEvent,
             endFightTracker::onMatchEvent,
+            mobTracker::onMatchEvent,
+            landmarkTracker::onMatchEvent,
         ))
 
         // register Bukkit listeners
@@ -92,15 +103,20 @@ class PeopleHunt : JavaPlugin() {
             MilestoneListener(inbound),
             CombatStatsListener(inbound),
             EndPortalListener(inbound),
+            HealthRegainListener(inbound),
             PotionEffectListener(inbound),
             StructureListener(inbound),
             TeleportListener(inbound),
             FluidListener(this, inbound),
             EnvironmentDamageListener(inbound),
+            craftingListener,
+            foodTracker,
             projectileTracker,
             playerSnapshotPoller,
             inventoryListener,
             endFightTracker,
+            mobTracker,
+            landmarkTracker,
         ))
 
         val manager = this.lifecycleManager

@@ -22,8 +22,16 @@ import io.github.ganyuke.peoplehunt.core.testutil.playerEnteredStructure
 import io.github.ganyuke.peoplehunt.core.testutil.playerExitedFluid
 import io.github.ganyuke.peoplehunt.core.testutil.playerExitedStructure
 import io.github.ganyuke.peoplehunt.core.testutil.playerFilledBucket
+import io.github.ganyuke.peoplehunt.core.testutil.playerCraftedItem
+import io.github.ganyuke.peoplehunt.core.testutil.playerRepairedItem
+import io.github.ganyuke.peoplehunt.core.testutil.playerItemBroke
+import io.github.ganyuke.peoplehunt.core.testutil.playerConsumedItem
+import io.github.ganyuke.peoplehunt.core.testutil.nearbyMobs
+import io.github.ganyuke.peoplehunt.core.testutil.netherPortalCreated
+import io.github.ganyuke.peoplehunt.core.testutil.worldSpawnRecorded
+import io.github.ganyuke.peoplehunt.core.testutil.playerSetSpawn
 import io.github.ganyuke.peoplehunt.core.testutil.playerGameModeChanged
-import io.github.ganyuke.peoplehunt.core.testutil.playerHealthChanged
+import io.github.ganyuke.peoplehunt.core.testutil.playerHealthRegained
 import io.github.ganyuke.peoplehunt.core.testutil.playerHungerChanged
 import io.github.ganyuke.peoplehunt.core.testutil.playerJoined
 import io.github.ganyuke.peoplehunt.core.testutil.playerMoved
@@ -371,12 +379,12 @@ class ReportingEngineTest {
     }
 
     @Test
-    fun trackedHealthChanged_logs() {
+    fun trackedHealthRegained_logs() {
         val fixture = reportingEngineFixture()
         val runner = player("runner")
         fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
-        fixture.engine.onReportableEvent(playerHealthChanged(runner))
-        assertTrue(fixture.logger.infoMessages.any { it.contains("Health: runner") })
+        fixture.engine.onReportableEvent(playerHealthRegained(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("HealthRegained: runner") })
     }
 
     @Test
@@ -838,5 +846,133 @@ class ReportingEngineTest {
         fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
         fixture.engine.onReportableEvent(playerDamagedEntity(runner, "minecraft:ender_dragon", 10.0))
         assertTrue(fixture.logger.infoMessages.none { it.contains("Milestone Unlocked") })
+    }
+
+    // -------------------------------------------------------------------------
+    // CRAFTING LIFECYCLE
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun trackedPlayerCrafts_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerCraftedItem(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Craft: runner") })
+    }
+
+    @Test
+    fun untrackedPlayerCrafts_ignored() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerCraftedItem(player("stranger")))
+        assertTrue(fixture.logger.infoMessages.none { it.contains("Craft:") })
+    }
+
+    @Test
+    fun trackedPlayerRepairs_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerRepairedItem(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Repair: runner") })
+    }
+
+    @Test
+    fun trackedPlayerItemBreaks_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerItemBroke(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("ItemBreak: runner") })
+    }
+
+    // -------------------------------------------------------------------------
+    // FOOD TRACKING
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun trackedPlayerConsumes_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerConsumedItem(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("Consume: runner") })
+    }
+
+    @Test
+    fun untrackedPlayerConsumes_ignored() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerConsumedItem(player("stranger")))
+        assertTrue(fixture.logger.infoMessages.none { it.contains("Consume:") })
+    }
+
+    // -------------------------------------------------------------------------
+    // MOB TRACKING
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun trackedPlayerNearbyMobs_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(nearbyMobs(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("NearbyMobs: runner") })
+    }
+
+    @Test
+    fun untrackedPlayerNearbyMobs_ignored() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(nearbyMobs(player("stranger")))
+        assertTrue(fixture.logger.infoMessages.none { it.contains("NearbyMobs:") })
+    }
+
+    // -------------------------------------------------------------------------
+    // LANDMARKS
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun netherPortalCreated_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(netherPortalCreated())
+        assertTrue(fixture.logger.infoMessages.any { it.contains("NetherPortal") })
+    }
+
+    @Test
+    fun worldSpawnRecorded_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(worldSpawnRecorded())
+        assertTrue(fixture.logger.infoMessages.any { it.contains("WorldSpawn") })
+    }
+
+    // -------------------------------------------------------------------------
+    // RESPAWN LOCATIONS
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun trackedPlayerSetsSpawn_logs() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerSetSpawn(runner))
+        assertTrue(fixture.logger.infoMessages.any { it.contains("SetSpawn: runner") })
+    }
+
+    @Test
+    fun untrackedPlayerSetsSpawn_ignored() {
+        val fixture = reportingEngineFixture()
+        val runner = player("runner")
+        fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
+        fixture.engine.onReportableEvent(playerSetSpawn(player("stranger")))
+        assertTrue(fixture.logger.infoMessages.none { it.contains("SetSpawn:") })
     }
 }

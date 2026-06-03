@@ -23,6 +23,7 @@ class ReportingEngine(
 ) {
     private val milestoneTracker = MilestoneTracker()
     private val combatStatsTracker = CombatStatsTracker()
+    private val structureVisitTracker = StructureVisitTracker()
 
     private var currentRunner: MatchPlayer? = null
     private var currentHunters: Set<MatchPlayer> = emptySet()
@@ -68,7 +69,8 @@ class ReportingEngine(
             is ReportablePayload.PlayerExitedStructure -> handlePlayerExitedStructure(payload)
             is ReportablePayload.PlayerEnteredFluid -> handlePlayerEnteredFluid(payload)
             is ReportablePayload.PlayerExitedFluid -> handlePlayerExitedFluid(payload)
-            is ReportablePayload.PlayerHealthChanged -> handlePlayerHealthChanged(payload)
+            is ReportablePayload.PlayerHealthRegained -> handlePlayerHealthRegained(payload)
+            is ReportablePayload.EntityHealthRegained -> handleEntityHealthRegained(payload)
             is ReportablePayload.PlayerHungerChanged -> handlePlayerHungerChanged(payload)
             is ReportablePayload.PlayerBreathChanged -> handlePlayerBreathChanged(payload)
             is ReportablePayload.PlayerXpChanged -> handlePlayerXpChanged(payload)
@@ -85,6 +87,14 @@ class ReportingEngine(
             is ReportablePayload.EndPortalCompleted -> handleEndPortalCompleted(payload)
             is ReportablePayload.PlayerJoined -> handlePlayerJoined(payload)
             is ReportablePayload.PlayerQuit -> handlePlayerQuit(payload)
+            is ReportablePayload.PlayerCraftedItem -> handlePlayerCraftedItem(payload)
+            is ReportablePayload.PlayerRepairedItem -> handlePlayerRepairedItem(payload)
+            is ReportablePayload.PlayerItemBroke -> handlePlayerItemBroke(payload)
+            is ReportablePayload.PlayerConsumedItem -> handlePlayerConsumedItem(payload)
+            is ReportablePayload.NearbyMobs -> handleNearbyMobs(payload)
+            is ReportablePayload.NetherPortalCreated -> handleNetherPortalCreated(payload)
+            is ReportablePayload.WorldSpawnRecorded -> handleWorldSpawnRecorded(payload)
+            is ReportablePayload.PlayerSetSpawn -> handlePlayerSetSpawn(payload)
         }
 
         processMilestoneTracking(event)
@@ -250,6 +260,7 @@ class ReportingEngine(
                 currentHunters = event.hunters
                 milestoneTracker.clear()
                 combatStatsTracker.clear()
+                structureVisitTracker.clear()
             }
 
             is MatchEvent.MatchEnd -> {
@@ -354,6 +365,9 @@ class ReportingEngine(
 
     private fun handlePlayerEnteredStructure(payload: ReportablePayload.PlayerEnteredStructure) {
         logPlayerPayload("StructureEnter", payload.player, payload.structureIdentifier)
+        if (structureVisitTracker.recordEntry(payload.structureIdentifier, payload.pos)) {
+            logger.info("GlobalStructureFirstVisit: ${payload.structureIdentifier} at (${payload.pos.x},${payload.pos.y},${payload.pos.z}) by ${payload.player.name}")
+        }
     }
 
     private fun handlePlayerExitedStructure(payload: ReportablePayload.PlayerExitedStructure) {
@@ -368,8 +382,12 @@ class ReportingEngine(
         logPlayerPayload("FluidExit", payload.player, payload.previousState.toString())
     }
 
-    private fun handlePlayerHealthChanged(payload: ReportablePayload.PlayerHealthChanged) {
-        logPlayerPayload("Health", payload.player, "hp=${payload.newHealth}/${payload.maxHealth}")
+    private fun handlePlayerHealthRegained(payload: ReportablePayload.PlayerHealthRegained) {
+        logPlayerPayload("HealthRegained", payload.player, "hp=${payload.newHealth}/${payload.maxHealth} cause=${payload.cause}")
+    }
+
+    private fun handleEntityHealthRegained(payload: ReportablePayload.EntityHealthRegained) {
+        logger.info("EntityHealthRegained: ${payload.entityType} hp=${payload.newHealth}/${payload.maxHealth} cause=${payload.cause}")
     }
 
     private fun handlePlayerHungerChanged(payload: ReportablePayload.PlayerHungerChanged) {
@@ -456,5 +474,57 @@ class ReportingEngine(
             val s = data.currentLifeData
             logger.info("Snapshot: ${payload.player.name} pos=(${s.spatialData.position.x},${s.spatialData.position.y},${s.spatialData.position.z}) hp=${s.vitals.health} food=${s.vitals.foodLevel} effects=${s.metadata.activePotionEffects.size}")
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // CRAFTING LIFECYCLE
+    // -------------------------------------------------------------------------
+
+    private fun handlePlayerCraftedItem(payload: ReportablePayload.PlayerCraftedItem) {
+        logPlayerPayload("Craft", payload.player, "${payload.itemType} x${payload.amount}")
+    }
+
+    private fun handlePlayerRepairedItem(payload: ReportablePayload.PlayerRepairedItem) {
+        logPlayerPayload("Repair", payload.player, payload.itemType)
+    }
+
+    private fun handlePlayerItemBroke(payload: ReportablePayload.PlayerItemBroke) {
+        logPlayerPayload("ItemBreak", payload.player, payload.itemType)
+    }
+
+    // -------------------------------------------------------------------------
+    // FOOD TRACKING
+    // -------------------------------------------------------------------------
+
+    private fun handlePlayerConsumedItem(payload: ReportablePayload.PlayerConsumedItem) {
+        logPlayerPayload("Consume", payload.player, "${payload.itemType} hunger=${payload.hungerRestored} saturation=${payload.saturationRestored}")
+    }
+
+    // -------------------------------------------------------------------------
+    // MOB TRACKING
+    // -------------------------------------------------------------------------
+
+    private fun handleNearbyMobs(payload: ReportablePayload.NearbyMobs) {
+        logPlayerPayload("NearbyMobs", payload.player, "${payload.mobs.size} mobs")
+    }
+
+    // -------------------------------------------------------------------------
+    // LANDMARKS
+    // -------------------------------------------------------------------------
+
+    private fun handleNetherPortalCreated(payload: ReportablePayload.NetherPortalCreated) {
+        logger.info("NetherPortal: created at (${payload.pos.x},${payload.pos.y},${payload.pos.z})")
+    }
+
+    private fun handleWorldSpawnRecorded(payload: ReportablePayload.WorldSpawnRecorded) {
+        logger.info("WorldSpawn: recorded at (${payload.pos.x},${payload.pos.y},${payload.pos.z})")
+    }
+
+    // -------------------------------------------------------------------------
+    // RESPAWN LOCATIONS
+    // -------------------------------------------------------------------------
+
+    private fun handlePlayerSetSpawn(payload: ReportablePayload.PlayerSetSpawn) {
+        logPlayerPayload("SetSpawn", payload.player, "${payload.spawnType} at (${payload.pos.x},${payload.pos.y},${payload.pos.z})")
     }
 }

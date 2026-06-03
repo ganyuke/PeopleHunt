@@ -5,21 +5,28 @@ import io.papermc.paper.registry.RegistryKey
 import org.bukkit.Location
 import org.bukkit.generator.structure.Structure
 
+data class StructureInfo(val name: String, val center: Location)
+
 object StructureLocator {
     private val structureRegistry = RegistryAccess.registryAccess().getRegistry(RegistryKey.STRUCTURE)
 
-    // should turn the ugly enums into stuff like `minecraft:fortress`
     private fun getStructureKeyString(structure: Structure): String? =
         structureRegistry.getKey(structure)?.toString()
 
-    // this is a little more specific, check if the player is actually in a piece
-    // of the structure instead of a bounding box
-    private fun getCurrentStructure(location: Location): String? =
+    private fun findMatchingChunkStructure(location: Location) =
         location.chunk.structures.firstOrNull { structure ->
             structure.pieces.any { piece ->
                 piece.boundingBox.contains(location.x, location.y, location.z)
             }
-        }?.structure?.let(::getStructureKeyString)
+        }
 
-    fun getStructureAt(pos: Location): String? = getCurrentStructure(pos)
+    fun getStructureAt(pos: Location): String? =
+        findMatchingChunkStructure(pos)?.structure?.let(::getStructureKeyString)
+
+    fun getStructureInfoAt(pos: Location): StructureInfo? {
+        val chunkStructure = findMatchingChunkStructure(pos) ?: return null
+        val name = getStructureKeyString(chunkStructure.structure) ?: return null
+        val piece = chunkStructure.pieces.firstOrNull { it.boundingBox.contains(pos.x, pos.y, pos.z) } ?: return null
+        return StructureInfo(name, piece.boundingBox.center.toLocation(pos.world))
+    }
 }

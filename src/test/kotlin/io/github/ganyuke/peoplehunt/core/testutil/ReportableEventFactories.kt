@@ -1,7 +1,9 @@
 package io.github.ganyuke.peoplehunt.core.testutil
 
+import io.github.ganyuke.peoplehunt.core.events.MobSnapshot
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
+import io.github.ganyuke.peoplehunt.core.events.SpawnType
 import io.github.ganyuke.peoplehunt.core.events.models.FluidState
 import io.github.ganyuke.peoplehunt.core.events.models.KillCause
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
@@ -9,6 +11,7 @@ import io.github.ganyuke.peoplehunt.core.events.models.Pos4
 import io.github.ganyuke.peoplehunt.core.events.models.TeleportCause
 import io.github.ganyuke.peoplehunt.core.events.models.Velocity
 import kotlin.time.Clock
+import kotlin.uuid.Uuid
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 
 private const val DEFAULT_TICK = 0
@@ -154,9 +157,13 @@ fun endPortalCompleted(pos: Pos4) = ReportableEvent(
     payload = ReportablePayload.EndPortalCompleted(pos),
 )
 
-fun playerEnteredStructure(player: MatchPlayer, structure: String) = ReportableEvent(
+fun playerEnteredStructure(
+    player: MatchPlayer,
+    structure: String,
+    pos: Pos4 = pos(),
+) = ReportableEvent(
     tick = DEFAULT_TICK,
-    payload = ReportablePayload.PlayerEnteredStructure(player, structure),
+    payload = ReportablePayload.PlayerEnteredStructure(player, structure, pos),
 )
 
 fun potionEffectApplied(
@@ -299,14 +306,25 @@ fun playerExitedFluid(
     payload = ReportablePayload.PlayerExitedFluid(player, previousState),
 )
 
-fun playerHealthChanged(
+fun playerHealthRegained(
     player: MatchPlayer,
     newHealth: Double = 20.0,
     maxHealth: Double = 20.0,
-    absorption: Double = 0.0,
+    cause: String = "CUSTOM",
 ) = ReportableEvent(
     tick = DEFAULT_TICK,
-    payload = ReportablePayload.PlayerHealthChanged(player, newHealth, maxHealth, absorption),
+    payload = ReportablePayload.PlayerHealthRegained(player, newHealth, maxHealth, cause),
+)
+
+fun entityHealthRegained(
+    entityUuid: Uuid = Uuid.random(),
+    entityType: String = "minecraft:ender_dragon",
+    newHealth: Double = 200.0,
+    maxHealth: Double = 300.0,
+    cause: String = "ENDER_CRYSTAL",
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.EntityHealthRegained(entityUuid, entityType, newHealth, maxHealth, cause),
 )
 
 fun playerHungerChanged(
@@ -349,4 +367,86 @@ fun playerQuit(
 ) = ReportableEvent(
     tick = DEFAULT_TICK,
     payload = ReportablePayload.PlayerQuit(player, reason),
+)
+
+// -------------------------------------------------------------------------
+// CRAFTING LIFECYCLE
+// -------------------------------------------------------------------------
+
+fun playerCraftedItem(
+    player: MatchPlayer,
+    itemType: String = "minecraft:diamond_sword",
+    amount: Int = 1,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerCraftedItem(player, itemType, amount),
+)
+
+fun playerRepairedItem(
+    player: MatchPlayer,
+    itemType: String = "minecraft:diamond_sword",
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerRepairedItem(player, itemType),
+)
+
+fun playerItemBroke(
+    player: MatchPlayer,
+    itemType: String = "minecraft:diamond_sword",
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerItemBroke(player, itemType),
+)
+
+// -------------------------------------------------------------------------
+// FOOD TRACKING
+// -------------------------------------------------------------------------
+
+fun playerConsumedItem(
+    player: MatchPlayer,
+    itemType: String = "minecraft:cooked_beef",
+    hungerRestored: Int = 8,
+    saturationRestored: Float = 12.8f,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerConsumedItem(player, itemType, hungerRestored, saturationRestored),
+)
+
+// -------------------------------------------------------------------------
+// MOB TRACKING
+// -------------------------------------------------------------------------
+
+fun nearbyMobs(
+    player: MatchPlayer,
+    mobs: List<MobSnapshot> = emptyList(),
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.NearbyMobs(player, mobs),
+)
+
+// -------------------------------------------------------------------------
+// LANDMARKS
+// -------------------------------------------------------------------------
+
+fun netherPortalCreated(pos: Pos4 = pos()) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.NetherPortalCreated(pos),
+)
+
+fun worldSpawnRecorded(pos: Pos4 = pos()) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.WorldSpawnRecorded(pos),
+)
+
+// -------------------------------------------------------------------------
+// RESPAWN LOCATIONS
+// -------------------------------------------------------------------------
+
+fun playerSetSpawn(
+    player: MatchPlayer,
+    pos: Pos4 = pos(),
+    spawnType: SpawnType = SpawnType.BED,
+) = ReportableEvent(
+    tick = DEFAULT_TICK,
+    payload = ReportablePayload.PlayerSetSpawn(player, pos, spawnType),
 )

@@ -10,6 +10,7 @@ import io.github.ganyuke.peoplehunt.core.events.models.Velocity
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 import kotlin.time.Clock
 import kotlin.time.Instant
+import kotlin.uuid.Uuid
 
 data class ReportableEvent(
     val tick: Int,
@@ -92,6 +93,7 @@ sealed class ReportablePayload {
     data class PlayerEnteredStructure(
         val player: MatchPlayer,
         val structureIdentifier: String,
+        val pos: Pos4,
     ) : ReportablePayload()
 
     data class PlayerExitedStructure(
@@ -117,11 +119,19 @@ sealed class ReportablePayload {
     // VITALS
     // -------------------------------------------------------------------------
 
-    data class PlayerHealthChanged(
+    data class PlayerHealthRegained(
         val player: MatchPlayer,
         val newHealth: Double,
         val maxHealth: Double,
-        val absorption: Double,
+        val cause: String,
+    ) : ReportablePayload()
+
+    data class EntityHealthRegained(
+        val entityUuid: Uuid,
+        val entityType: String,
+        val newHealth: Double,
+        val maxHealth: Double,
+        val cause: String,
     ) : ReportablePayload()
 
     data class PlayerHungerChanged(
@@ -295,4 +305,76 @@ sealed class ReportablePayload {
         val player: MatchPlayer,
         val reason: String
     ) : ReportablePayload()
+
+    // -------------------------------------------------------------------------
+    // CRAFTING LIFECYCLE
+    // -------------------------------------------------------------------------
+
+    data class PlayerCraftedItem(
+        val player: MatchPlayer,
+        val itemType: String,
+        val amount: Int,
+    ) : ReportablePayload()
+
+    data class PlayerRepairedItem(
+        val player: MatchPlayer,
+        val itemType: String,
+    ) : ReportablePayload()
+
+    data class PlayerItemBroke(
+        val player: MatchPlayer,
+        val itemType: String,
+    ) : ReportablePayload()
+
+    // -------------------------------------------------------------------------
+    // FOOD TRACKING
+    // -------------------------------------------------------------------------
+
+    data class PlayerConsumedItem(
+        val player: MatchPlayer,
+        val itemType: String,
+        val hungerRestored: Int,
+        val saturationRestored: Float,
+    ) : ReportablePayload()
+
+    // -------------------------------------------------------------------------
+    // MOB TRACKING
+    // -------------------------------------------------------------------------
+
+    data class NearbyMobs(
+        val player: MatchPlayer,
+        val mobs: List<MobSnapshot>,
+    ) : ReportablePayload()
+
+    // -------------------------------------------------------------------------
+    // LANDMARKS
+    // -------------------------------------------------------------------------
+
+    data class NetherPortalCreated(
+        val pos: Pos4,
+    ) : ReportablePayload()
+
+    data class WorldSpawnRecorded(
+        val pos: Pos4,
+    ) : ReportablePayload()
+
+    // -------------------------------------------------------------------------
+    // RESPAWN LOCATIONS
+    // -------------------------------------------------------------------------
+
+    data class PlayerSetSpawn(
+        val player: MatchPlayer,
+        val pos: Pos4,
+        val spawnType: SpawnType,
+    ) : ReportablePayload()
 }
+
+data class MobSnapshot(
+    val entityUuid: Uuid,
+    val pos: Pos4,
+    val entityType: String,
+    val health: Double,
+    val distance: Double,
+)
+
+enum class SpawnType { BED, RESPAWN_ANCHOR }
