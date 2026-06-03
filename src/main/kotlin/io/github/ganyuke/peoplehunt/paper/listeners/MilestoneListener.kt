@@ -7,13 +7,11 @@ import io.github.ganyuke.peoplehunt.paper.utils.post
 import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
 import io.papermc.paper.event.player.PlayerTradeEvent
 import org.bukkit.Material
-import org.bukkit.entity.EnderCrystal
 import org.bukkit.entity.EnderSignal
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
-import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityPickupItemEvent
 import org.bukkit.event.entity.EntitySpawnEvent
 import org.bukkit.event.inventory.CraftItemEvent
@@ -135,15 +133,4 @@ class MilestoneListener(private val inbound: ReportableEventBus) : Listener {
         )
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    fun onEndCrystalDestroy(event: EntityDamageByEntityEvent) {
-        val crystal = event.entity as? EnderCrystal ?: return
-        val killer = event.damager as? Player
-
-        inbound.post(
-            ReportablePayload.EndCrystalDestroyed(
-                player = killer?.toMatchPlayer()
-            )
-        )
-    }
 }

@@ -1,12 +1,13 @@
 package io.github.ganyuke.peoplehunt.paper.listeners
 
-import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.paper.utils.post
 import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
+import io.github.ganyuke.peoplehunt.paper.utils.toPos4
 import org.bukkit.entity.Damageable
 import org.bukkit.entity.Player
+import org.bukkit.entity.Projectile
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -26,16 +27,21 @@ class CombatStatsListener(private val inbound: ReportableEventBus) : Listener {
             val entityIdentifier = victim.type.key.toString()
 
             val remainingHealth = if (victim is Damageable) {
-                // apparently the health doesn't update until after so I guess we need to manually calculate
                 (victim.health - event.finalDamage).coerceAtLeast(0.0)
             } else null
+
+            val weaponType = damager.inventory.itemInMainHand.type.key.toString()
+            val projectileId = (event.damager as? Projectile)?.entityId
 
             inbound.post(
                 ReportablePayload.PlayerDamagedEntity(
                     player = damager.toMatchPlayer(),
                     entityIdentifier = entityIdentifier,
                     amount = event.finalDamage,
-                    remainingHealth = remainingHealth
+                    remainingHealth = remainingHealth,
+                    victimPos = victim.location.toPos4(),
+                    weaponType = weaponType,
+                    projectileId = projectileId,
                 )
             )
         }
@@ -43,15 +49,19 @@ class CombatStatsListener(private val inbound: ReportableEventBus) : Listener {
         // scenario B: player takes damage
         if (victim is Player) {
             val remainingHealth =
-                // apparently the health doesn't update until after so I guess we need to manually calculate
                 (victim.health - event.finalDamage).coerceAtLeast(0.0)
+
+            val weaponType = (event.damager as? Player)?.inventory?.itemInMainHand?.type?.key?.toString()
+            val projectileId = (event.damager as? Projectile)?.entityId
 
             inbound.post(
                 ReportablePayload.PlayerDamagedByEntity(
                     player = victim.toMatchPlayer(),
                     entityIdentifier = event.damager.type.key.toString(),
                     amount = event.finalDamage,
-                    remainingHealth = remainingHealth
+                    remainingHealth = remainingHealth,
+                    weaponType = weaponType,
+                    projectileId = projectileId,
                 )
             )
         }

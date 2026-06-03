@@ -1,10 +1,12 @@
 package io.github.ganyuke.peoplehunt.core.services.reporting
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
+import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
+import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.core.events.models.KillCause
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
-import io.github.ganyuke.peoplehunt.core.testutil.endCrystalDestroyed
 import io.github.ganyuke.peoplehunt.core.testutil.endPortalCompleted
+import io.github.ganyuke.peoplehunt.core.testutil.playerDamagedEntity
 import io.github.ganyuke.peoplehunt.core.testutil.entityDied
 import io.github.ganyuke.peoplehunt.core.testutil.player
 import io.github.ganyuke.peoplehunt.core.testutil.playerAcquiredItem
@@ -13,7 +15,6 @@ import io.github.ganyuke.peoplehunt.core.testutil.playerChangedDimension
 import io.github.ganyuke.peoplehunt.core.testutil.playerConnected
 import io.github.ganyuke.peoplehunt.core.testutil.playerDamagedByEntity
 import io.github.ganyuke.peoplehunt.core.testutil.playerDamagedByEnvironment
-import io.github.ganyuke.peoplehunt.core.testutil.playerDamagedEntity
 import io.github.ganyuke.peoplehunt.core.testutil.playerDied
 import io.github.ganyuke.peoplehunt.core.testutil.playerDisconnected
 import io.github.ganyuke.peoplehunt.core.testutil.playerEnteredFluid
@@ -495,11 +496,17 @@ class ReportingEngineTest {
     }
 
     @Test
-    fun endCrystalDestroyed_logs() {
+    fun endCrystalDiscovered_logs() {
         val fixture = reportingEngineFixture()
         val runner = player("runner")
+        val crystalPos = pos()
         fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
-        fixture.engine.onReportableEvent(endCrystalDestroyed(runner))
+        fixture.engine.onReportableEvent(
+            ReportableEvent(
+                tick = 0,
+                payload = ReportablePayload.EndCrystalDiscovered(crystalPos, 42),
+            )
+        )
         assertTrue(fixture.logger.infoMessages.any { it.contains("EndCrystal") })
     }
 
@@ -685,7 +692,7 @@ class ReportingEngineTest {
     }
 
     // -------------------------------------------------------------------------
-    // processMilestoneTracking — EndCrystalDestroyed
+    // processMilestoneTracking — End Crystal destroyed via PlayerDamagedEntity
     // -------------------------------------------------------------------------
 
     @Test
@@ -693,7 +700,7 @@ class ReportingEngineTest {
         val fixture = reportingEngineFixture()
         val runner = player("runner")
         fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
-        fixture.engine.onReportableEvent(endCrystalDestroyed())
+        fixture.engine.onReportableEvent(playerDamagedEntity(runner, "minecraft:end_crystal", 0.0))
         assertTrue(fixture.logger.infoMessages.any { it.contains("Milestone Unlocked") })
     }
 
@@ -702,8 +709,8 @@ class ReportingEngineTest {
         val fixture = reportingEngineFixture()
         val runner = player("runner")
         fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
-        fixture.engine.onReportableEvent(endCrystalDestroyed())
-        fixture.engine.onReportableEvent(endCrystalDestroyed())
+        fixture.engine.onReportableEvent(playerDamagedEntity(runner, "minecraft:end_crystal", 0.0))
+        fixture.engine.onReportableEvent(playerDamagedEntity(runner, "minecraft:end_crystal", 0.0))
         assertEquals(2, fixture.logger.infoMessages.count { it.contains("Milestone Unlocked") })
     }
 

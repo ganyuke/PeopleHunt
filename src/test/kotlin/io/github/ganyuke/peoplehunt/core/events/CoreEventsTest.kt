@@ -1,12 +1,10 @@
 package io.github.ganyuke.peoplehunt.core.events
 
 import io.github.ganyuke.peoplehunt.core.events.models.KillCause
-import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import io.github.ganyuke.peoplehunt.core.events.models.Pos4
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 import io.github.ganyuke.peoplehunt.core.testutil.entityDied
-import io.github.ganyuke.peoplehunt.core.testutil.endCrystalDestroyed
 import io.github.ganyuke.peoplehunt.core.testutil.endPortalCompleted
 import io.github.ganyuke.peoplehunt.core.testutil.player
 import io.github.ganyuke.peoplehunt.core.testutil.playerAcquiredItem
@@ -93,9 +91,6 @@ class CoreEventsTest {
 
         val pfb = playerFilledBucket(p, "water")
         assertEquals("water", (pfb.payload as ReportablePayload.PlayerFilledBucket).fluid)
-
-        val ecd = endCrystalDestroyed(p)
-        assertEquals(p, (ecd.payload as ReportablePayload.EndCrystalDestroyed).player)
 
         val portalPos = Pos4(1, 2, 3, Uuid.random())
         val epc = endPortalCompleted(portalPos)

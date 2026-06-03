@@ -78,7 +78,7 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 * Left the Nether is dependent on obtaining the Blaze Rod achievement, since otherwise leaving the Nether at all would award this.
 * Eye of Ender thrown detection is a bit of a hack. Will also fire if another player throws an eye while standing near the runner.
 * Ender Portal completion is a bit of a hack relying on checking if the placed Eye of Ender will complete the End Portal. Had to steal [a bit of code from Cooperative End Access](https://github.com/ganyuke/CooperativeEndAccess/blob/main/src/main/java/io/github/ganyuke/cooperativeEndAccess/portal/PortalListener.java) to get this to work.
-* `EndCrystalDestroyed` is emitted from `MilestoneListener` (attribution optional).
+* `EndCrystalDestroyed` milestone is inferred from `PlayerDamagedEntity` with `entityIdentifier == "minecraft:end_crystal"`, attributed from `CombatStatsListener`.
 
 ---
 
@@ -115,12 +115,12 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 
 **Goal:** Watch the path of the dragon on the map and watch its health gradually decline.
 
-* [ ] **Dragon Position:** Poll position.
-* [ ] **Dragon Vitals:** Poll health.
+* [x] **Dragon Position:** Poll position via `EndFightTracker` per-tick.
+* [x] **Dragon Vitals:** Poll health via `EndFightTracker` per-tick.
 * [x] **Dragon HP milestones** (50 / 25 / 10 / 5%).
-* [ ] **Attribute Killing blow**.
-* [x] **End Crystal destroyed event** (`EndCrystalDestroyed` from `MilestoneListener`).
-* [ ] **End Crystal map** (positions, per-crystal timeline).
+* [x] **Attribute Killing blow**: Weapon/projectile/final-damage enrichment on all `EntityDied` / `PlayerDamagedEntity` / `PlayerDamagedByEntity` events.
+* [x] **End Crystal map** (positions, per-crystal timeline via `EndFightTracker` + enriched `PlayerDamagedEntity`).
+* [x] **End Crystal destroyed event & milestones**: Handled through `PlayerDamagedEntity` with `entityIdentifier == "minecraft:end_crystal"` in `processMilestoneTracking`.
 
 ---
 

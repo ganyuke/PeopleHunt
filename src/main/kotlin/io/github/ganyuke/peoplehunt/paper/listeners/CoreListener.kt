@@ -1,16 +1,16 @@
 package io.github.ganyuke.peoplehunt.paper.listeners
 
-import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.core.events.models.KillCause
-import io.github.ganyuke.peoplehunt.paper.utils.StructureLocator
 import io.github.ganyuke.peoplehunt.paper.utils.post
 import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
 import io.github.ganyuke.peoplehunt.paper.utils.toPos4
 import io.github.ganyuke.peoplehunt.paper.utils.toSnapshot
+import net.kyori.adventure.text.minimessage.MiniMessage
 import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
+import org.bukkit.entity.Projectile
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -21,6 +21,8 @@ import org.bukkit.event.player.PlayerMoveEvent
 import org.bukkit.event.player.PlayerRespawnEvent
 
 class CoreListener(private val inbound: ReportableEventBus) : Listener {
+    val mm = MiniMessage.miniMessage()
+
     @EventHandler
     fun onMove(event: PlayerMoveEvent) {
         inbound.post(event.toSnapshot())
@@ -36,6 +38,14 @@ class CoreListener(private val inbound: ReportableEventBus) : Listener {
             null -> KillCause.Environmental
         }
 
+        val weaponType = when (val damager = cause?.damager) {
+            is Player -> damager.inventory.itemInMainHand.type.key.toString()
+            is Projectile -> (damager.shooter as? Player)?.inventory?.itemInMainHand?.type?.key?.toString()
+            else -> null
+        }
+
+        val projectileId = (cause?.damager as? Projectile)?.entityId
+
         val deadEntity = event.entity
         if (deadEntity is Player) {
             inbound.post(
@@ -43,7 +53,7 @@ class CoreListener(private val inbound: ReportableEventBus) : Listener {
                     player = deadEntity.toMatchPlayer(),
                     pos = deadEntity.location.toPos4(),
                     cause = killCause,
-                    deathMessage = (event as? PlayerDeathEvent)?.deathMessage,
+                    deathMessage = (event as? PlayerDeathEvent)?.deathMessage()?.let(this.mm::serialize)
                 )
             )
         } else {
@@ -52,6 +62,8 @@ class CoreListener(private val inbound: ReportableEventBus) : Listener {
                     entityIdentifier = deadEntity.type.key.toString(),
                     pos = deadEntity.location.toPos4(),
                     cause = killCause,
+                    weaponType = weaponType,
+                    projectileId = projectileId,
                 )
             )
         }

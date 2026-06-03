@@ -149,11 +149,6 @@ fun playerFilledBucket(player: MatchPlayer, fluid: String) = ReportableEvent(
     payload = ReportablePayload.PlayerFilledBucket(player, fluid),
 )
 
-fun endCrystalDestroyed(player: MatchPlayer? = null) = ReportableEvent(
-    tick = DEFAULT_TICK,
-    payload = ReportablePayload.EndCrystalDestroyed(player),
-)
-
 fun endPortalCompleted(pos: Pos4) = ReportableEvent(
     tick = DEFAULT_TICK,
     payload = ReportablePayload.EndPortalCompleted(pos),
@@ -196,7 +191,7 @@ fun playerSnapshotChanged(player: MatchPlayer) = ReportableEvent(
                         position = pos(),
                         yaw = 0f,
                         pitch = 0f,
-                        velocity = io.github.ganyuke.peoplehunt.core.events.models.Velocity(0.0, 0.0, 0.0),
+                        velocity = Velocity(0.0, 0.0, 0.0),
                     ),
                     vitals = io.github.ganyuke.peoplehunt.core.events.models.Vitals(
                         health = 20.0,

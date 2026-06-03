@@ -80,7 +80,8 @@ class ReportingEngine(
             is ReportablePayload.PlayerChangedDimension -> handlePlayerChangedDimension(payload)
             is ReportablePayload.PlayerThrewEnderEye -> handlePlayerThrewEnderEye(payload)
             is ReportablePayload.PlayerFilledBucket -> handlePlayerFilledBucket(payload)
-            is ReportablePayload.EndCrystalDestroyed -> handleEndCrystalDestroyed(payload)
+            is ReportablePayload.DragonSnapshot -> handleDragonSnapshot(payload)
+            is ReportablePayload.EndCrystalDiscovered -> handleEndCrystalDiscovered(payload)
             is ReportablePayload.EndPortalCompleted -> handleEndPortalCompleted(payload)
             is ReportablePayload.PlayerJoined -> handlePlayerJoined(payload)
             is ReportablePayload.PlayerQuit -> handlePlayerQuit(payload)
@@ -93,6 +94,9 @@ class ReportingEngine(
         if (payload.player isReally currentRunner || currentHunters reallyContains payload.player) {
             nameResolver[payload.player.uuid] = payload.player.name
             combatStatsTracker.recordDamageDealt(payload.player.uuid, payload.amount)
+            val weapon = payload.weaponType ?: "none"
+            val projectile = payload.projectileId?.let { " (projectile=$it)" } ?: ""
+            logger.info("DamageDealt: ${payload.player.name} dealt ${payload.amount} to ${payload.entityIdentifier} with $weapon$projectile")
         }
     }
 
@@ -100,6 +104,9 @@ class ReportingEngine(
         if (payload.player isReally currentRunner || currentHunters reallyContains payload.player) {
             nameResolver[payload.player.uuid] = payload.player.name
             combatStatsTracker.recordDamageTaken(payload.player.uuid, payload.amount)
+            val weapon = payload.weaponType ?: "none"
+            val projectile = payload.projectileId?.let { " (projectile=$it)" } ?: ""
+            logger.info("DamageReceived: ${payload.player.name} took ${payload.amount} from ${payload.entityIdentifier} via $weapon$projectile")
         }
     }
 
@@ -179,16 +186,6 @@ class ReportingEngine(
                 SpeedrunMilestone.CompletedEndPortal
             }
 
-            // reporting milestone feat: end crystal destruction progress
-            is ReportablePayload.EndCrystalDestroyed -> {
-                // regardless of whether a runner blew up the crystal, track crystal death
-                if (!milestoneTracker.hasMilestone(SpeedrunMilestone.DestroyedFirstEndCrystal)) {
-                    SpeedrunMilestone.DestroyedFirstEndCrystal
-                } else {
-                    SpeedrunMilestone.DestroyedAllEndCrystals
-                }
-            }
-
             // reporting milestone feat: ender dragon death attribution
             is ReportablePayload.EntityDied -> {
                 if (payload.entityIdentifier != "minecraft:ender_dragon") return
@@ -204,18 +201,32 @@ class ReportingEngine(
                 }
             }
 
-            // reporting milestone feat: ender dragon health percentages
+            // reporting milestone feat: ender dragon health percentages & end crystal destruction
             is ReportablePayload.PlayerDamagedEntity -> {
-                if (payload.player isReally runner && payload.entityIdentifier == "minecraft:ender_dragon" && payload.remainingHealth != null) {
-                    // Ender Dragon standard max health is 200.0
-                    val maxHealth = 200.0
-                    val healthPercentage = (payload.remainingHealth / maxHealth) * 100.0
+                if (payload.player isReally runner) {
+                    when (payload.entityIdentifier) {
+                        "minecraft:ender_dragon" -> {
+                            if (payload.remainingHealth != null) {
+                                val maxHealth = 200.0
+                                val healthPercentage = (payload.remainingHealth / maxHealth) * 100.0
+                                when {
+                                    healthPercentage <= 5.0 -> SpeedrunMilestone.DragonAt5Percent
+                                    healthPercentage <= 10.0 -> SpeedrunMilestone.DragonAt10Percent
+                                    healthPercentage <= 25.0 -> SpeedrunMilestone.DragonAt25Percent
+                                    healthPercentage <= 50.0 -> SpeedrunMilestone.DragonAt50Percent
+                                    else -> null
+                                }
+                            } else null
+                        }
 
-                    when {
-                        healthPercentage <= 5.0 -> SpeedrunMilestone.DragonAt5Percent
-                        healthPercentage <= 10.0 -> SpeedrunMilestone.DragonAt10Percent
-                        healthPercentage <= 25.0 -> SpeedrunMilestone.DragonAt25Percent
-                        healthPercentage <= 50.0 -> SpeedrunMilestone.DragonAt50Percent
+                        "minecraft:end_crystal" -> {
+                            if (!milestoneTracker.hasMilestone(SpeedrunMilestone.DestroyedFirstEndCrystal)) {
+                                SpeedrunMilestone.DestroyedFirstEndCrystal
+                            } else {
+                                SpeedrunMilestone.DestroyedAllEndCrystals
+                            }
+                        }
+
                         else -> null
                     }
                 } else null
@@ -279,7 +290,9 @@ class ReportingEngine(
             nameResolver[killer.uuid] = killer.name
 
             if (killer isReally currentRunner || currentHunters reallyContains killer) {
-                logger.info("Combat Stats: ${killer.name} scored a kill against ${payload.entityIdentifier}.")
+                val weapon = payload.weaponType ?: "none"
+                val projectile = payload.projectileId?.let { " (projectile=$it)" } ?: ""
+                logger.info("Combat Stats: ${killer.name} scored a kill against ${payload.entityIdentifier} with $weapon$projectile")
                 combatStatsTracker.recordKill(killer.uuid)
             } else {
                 logger.warn("Received kill event for untracked killer: ${killer.name} (UID: ${killer.uuid})")
@@ -409,9 +422,12 @@ class ReportingEngine(
         logPlayerPayload("BucketFill", payload.player, payload.fluid)
     }
 
-    private fun handleEndCrystalDestroyed(payload: ReportablePayload.EndCrystalDestroyed) {
-        val playerName = payload.player?.name ?: "unknown"
-        logger.info("EndCrystal: destroyed by $playerName")
+    private fun handleDragonSnapshot(payload: ReportablePayload.DragonSnapshot) {
+        logger.info("DragonSnapshot: pos=(${payload.pos.x},${payload.pos.y},${payload.pos.z}) hp=${payload.health}/${payload.maxHealth}")
+    }
+
+    private fun handleEndCrystalDiscovered(payload: ReportablePayload.EndCrystalDiscovered) {
+        logger.info("EndCrystal: discovered at (${payload.pos.x},${payload.pos.y},${payload.pos.z}) id=${payload.crystalEntityId}")
     }
 
     private fun handleEndPortalCompleted(payload: ReportablePayload.EndPortalCompleted) {

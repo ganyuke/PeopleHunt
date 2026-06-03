@@ -153,6 +153,8 @@ sealed class ReportablePayload {
         val entityIdentifier: String,
         val pos: Pos4,
         val cause: KillCause,
+        val weaponType: String? = null,
+        val projectileId: Int? = null,
     ) : ReportablePayload()
 
     data class PlayerDied(
@@ -167,6 +169,9 @@ sealed class ReportablePayload {
         val entityIdentifier: String,
         val amount: Double,
         val remainingHealth: Double? = null,
+        val victimPos: Pos4? = null,
+        val weaponType: String? = null,
+        val projectileId: Int? = null,
     ) : ReportablePayload()
 
     data class PlayerDamagedByEntity(
@@ -174,6 +179,8 @@ sealed class ReportablePayload {
         val entityIdentifier: String,
         val amount: Double,
         val remainingHealth: Double? = null,
+        val weaponType: String? = null,
+        val projectileId: Int? = null,
     ) : ReportablePayload()
 
     data class PlayerDamagedByEnvironment(
@@ -237,8 +244,15 @@ sealed class ReportablePayload {
         val fluid: String,
     ) : ReportablePayload()
 
-    data class EndCrystalDestroyed(
-        val player: MatchPlayer?,
+    data class DragonSnapshot(
+        val pos: Pos4,
+        val health: Double,
+        val maxHealth: Double,
+    ) : ReportablePayload()
+
+    data class EndCrystalDiscovered(
+        val pos: Pos4,
+        val crystalEntityId: Int,
     ) : ReportablePayload()
 
     data class EndPortalCompleted(
