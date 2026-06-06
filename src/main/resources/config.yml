@@ -14,3 +14,7 @@ match-minutes-interval: 30
 # How often (in ticks) to update the hunter compass position
 # with the runner's current location.
 compass-tick-interval: 4
+
+# How often (in minutes) to flush in-memory report frames to SQLite.
+# Wall-clock interval anchored to match start; manual /ph report flush does not reset this timer.
+report-flush-interval-minutes: 5

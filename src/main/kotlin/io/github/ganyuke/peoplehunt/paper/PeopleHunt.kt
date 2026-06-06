@@ -6,11 +6,16 @@ import io.github.ganyuke.peoplehunt.core.services.core.CompassService
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.reporting.MilestoneRouter
 import io.github.ganyuke.peoplehunt.core.services.reporting.ReportingEngine
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.JsonStorage
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportExportHandler
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportService
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportStenographer
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.ReportJson
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.SqliteStorage
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.WebReportSerializer
 import io.github.ganyuke.peoplehunt.paper.adapters.PaperLoggerAdapter
 import io.github.ganyuke.peoplehunt.paper.adapters.PaperSchedulerAdapter
 import io.github.ganyuke.peoplehunt.paper.command.match.MatchCommand
+import io.github.ganyuke.peoplehunt.paper.command.report.ReportCommand
 import io.github.ganyuke.peoplehunt.paper.events.BroadcastEventHandler
 import io.github.ganyuke.peoplehunt.paper.events.CompassEventHandler
 import io.github.ganyuke.peoplehunt.paper.listeners.*
@@ -22,6 +27,8 @@ import org.bukkit.plugin.java.JavaPlugin
 class PeopleHunt : JavaPlugin() {
     private lateinit var matchEngine: MatchEngine
     private lateinit var reportStenographer: ReportStenographer
+    private lateinit var reportExportHandler: ReportExportHandler
+    private lateinit var reportService: ReportService
     private val inbound = ReportableEventBus()
     private val outbound = MatchEventBus()
 
@@ -52,6 +59,17 @@ class PeopleHunt : JavaPlugin() {
                 }
         }
 
+        val sqliteStorage = SqliteStorage(reportOutputFolder.toPath(), ReportJson.instance)
+        try {
+            sqliteStorage.verifyStorage()
+        } catch (cause: Exception) {
+            loggerAdapter.error("SQLite storage verification failed", cause)
+            server.pluginManager.disablePlugin(this)
+            return
+        }
+
+        val webSerializer = WebReportSerializer(reportOutputFolder.toPath(), sqliteStorage, ReportJson.instance)
+
         val compassEventHandler = CompassEventHandler(phConfig)
         val schedulerAdapter = PaperSchedulerAdapter(this)
 
@@ -71,8 +89,16 @@ class PeopleHunt : JavaPlugin() {
         val foodTracker = FoodTracker(inbound)
         val mobTracker = MobTracker(this, inbound)
         val landmarkTracker = LandmarkTracker(inbound)
-        reportStenographer =
-            ReportStenographer(outbound, schedulerAdapter, loggerAdapter, JsonStorage(reportOutputFolder.toPath()))
+
+        reportStenographer = ReportStenographer(
+            outbound,
+            schedulerAdapter,
+            loggerAdapter,
+            sqliteStorage,
+            phConfig,
+        )
+        reportExportHandler = ReportExportHandler(webSerializer, schedulerAdapter, loggerAdapter, outbound)
+        reportService = ReportService(reportStenographer, webSerializer, reportOutputFolder.toPath())
 
         // register listeners on bus that match and compass react to
         registerInbound(
@@ -82,8 +108,8 @@ class PeopleHunt : JavaPlugin() {
                 endFightTracker::onReportableEvent,
                 reportingEngine::onReportableEvent,
                 milestoneRouter::onReportableEvent,
-                reportStenographer::onReportableEvent
-            )
+                reportStenographer::onReportableEvent,
+            ),
         )
 
         // register listeners on bus that game must react to
@@ -100,8 +126,9 @@ class PeopleHunt : JavaPlugin() {
                 landmarkTracker::onMatchEvent,
                 reportingEngine::onMatchEvent,
                 milestoneRouter::onMatchEvent,
-                reportStenographer::onMatchEvent
-            )
+                reportStenographer::onMatchEvent,
+                reportExportHandler::onMatchEvent,
+            ),
         )
 
         // register Bukkit listeners
@@ -125,21 +152,29 @@ class PeopleHunt : JavaPlugin() {
                 inventoryListener,
                 endFightTracker,
                 mobTracker,
-                landmarkTracker
-            )
+                landmarkTracker,
+            ),
         )
 
         val manager = this.lifecycleManager
-
         manager.registerEventHandler(LifecycleEvents.COMMANDS) { event ->
-            val dispatcher = event.registrar()
-            dispatcher.register(MatchCommand.buildMatchCommand(matchEngine, reportingEngine))
+            val commandRoot = MatchCommand.buildMatchCommand(
+                matchEngine,
+                reportingEngine,
+                reportService,
+                schedulerAdapter,
+                loggerAdapter,
+                outbound,
+            )
+            event.registrar().register(commandRoot)
         }
     }
 
     override fun onDisable() {
         // tasks cancelled by MatchEngine.endMatch or server shutdown
         reportStenographer.shutdown()
+        reportExportHandler.shutdown()
+        ReportCommand.shutdown()
         matchEngine.shutdown()
     }
 }

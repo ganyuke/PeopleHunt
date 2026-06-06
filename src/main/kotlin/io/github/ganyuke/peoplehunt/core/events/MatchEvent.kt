@@ -14,4 +14,5 @@ sealed class MatchEvent {
     data class IntervalElapsed(val minutes: Long) : MatchEvent()
     data class BroadcastNotification(val message: String) : MatchEvent()
     data class OperatorNotification(val message: String) : MatchEvent()
+    data class ReportPersisted(val matchId: Uuid) : MatchEvent()
 }

@@ -27,20 +27,13 @@ private const val DEFAULT_TICK = 0
 fun playerMoved(
     player: MatchPlayer,
     pos: Pos4 = pos(),
-    yaw: Float = 0f,
-    pitch: Float = 0f,
+    isSneaking: Boolean = false,
 ) = ReportableEvent(
     tick = DEFAULT_TICK,
     payload = ReportablePayload.PlayerMovedByBlock(
         player = player,
         pos = pos,
-        yaw = yaw,
-        pitch = pitch,
-        sprinting = false,
-        sneaking = false,
-        flying = false,
-        swimming = false,
-        gliding = false,
+        isSneaking = isSneaking,
     ),
 )
 

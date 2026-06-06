@@ -59,7 +59,7 @@ class UtilsTest {
 
     @Test
     fun phConfig_storesValues() {
-        val config = PhConfig(globalCompass = true, matchMinutesInterval = 10.minutes, compassTickInterval = 20)
+        val config = PhConfig(globalCompass = true, matchMinutesInterval = 10.minutes, compassTickInterval = 20, reportFlushInterval = 5.minutes)
         assertEquals(10.minutes, config.matchMinutesInterval)
     }
 

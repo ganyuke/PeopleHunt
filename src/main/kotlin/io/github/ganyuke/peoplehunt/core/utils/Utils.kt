@@ -18,4 +18,9 @@ fun formatElapsed(seconds: Long): String {
 
 const val PEOPLEHUNT_NAMESPACE = "peoplehunt"
 
-data class PhConfig(val globalCompass: Boolean, val matchMinutesInterval: Duration, val compassTickInterval: Long)
+data class PhConfig(
+    val globalCompass: Boolean,
+    val matchMinutesInterval: Duration,
+    val compassTickInterval: Long,
+    val reportFlushInterval: Duration,
+)

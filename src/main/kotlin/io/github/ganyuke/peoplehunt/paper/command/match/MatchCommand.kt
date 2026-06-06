@@ -4,6 +4,11 @@ import com.mojang.brigadier.tree.LiteralCommandNode
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.MatchState
 import io.github.ganyuke.peoplehunt.core.services.reporting.ReportingEngine
+import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
+import io.github.ganyuke.peoplehunt.core.ports.LoggerPort
+import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportInboundPort
+import io.github.ganyuke.peoplehunt.paper.command.report.ReportCommand
 import io.github.ganyuke.peoplehunt.core.utils.PEOPLEHUNT_NAMESPACE
 import io.github.ganyuke.peoplehunt.paper.items.HunterCompass
 import io.github.ganyuke.peoplehunt.paper.utils.MatchStatusFormatter
@@ -11,6 +16,7 @@ import io.github.ganyuke.peoplehunt.paper.utils.toMatchPlayer
 import io.papermc.paper.command.brigadier.CommandSourceStack
 import io.papermc.paper.command.brigadier.Commands
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 
@@ -42,10 +48,25 @@ object MatchCommand {
 
     private fun getOnlinePlayers() = Bukkit.getOnlinePlayers().map { it.toMatchPlayer() }
 
+    private fun guardSession(port: ReportInboundPort, source: CommandSourceStack): Boolean {
+        val reason = port.blockReason() ?: return true
+        source.sender.sendMessage(
+            Component.text(MatchSessionGateFeedback.blockMessage(reason), NamedTextColor.RED),
+        )
+        return false
+    }
+
     /**
      * Registers the declarative command tree with Brigadier.
      */
-    fun buildMatchCommand(matchEngine: MatchEngine, reportingEngine: ReportingEngine): LiteralCommandNode<CommandSourceStack> {
+    fun buildMatchCommand(
+        matchEngine: MatchEngine,
+        reportingEngine: ReportingEngine,
+        reportPort: ReportInboundPort,
+        scheduler: SchedulerPort,
+        logger: LoggerPort,
+        outbound: MatchEventBus,
+    ): LiteralCommandNode<CommandSourceStack> {
         val rootNode = Commands.literal("ph")
         val frontmanPerm = "$PEOPLEHUNT_NAMESPACE.frontman"
 
@@ -61,10 +82,16 @@ object MatchCommand {
             // match administration commands
             then(Commands.literal("prime")
                 .requires { it.sender.hasPermission(frontmanPerm) }
-                .executes { ctx -> CommandErrors.handle(ctx.source, matchEngine.prime(getOnlinePlayers())) })
+                .executes { ctx ->
+                    if (!guardSession(reportPort, ctx.source)) return@executes 0
+                    CommandErrors.handle(ctx.source, matchEngine.prime(getOnlinePlayers()))
+                })
             then(Commands.literal("start")
                 .requires { it.sender.hasPermission(frontmanPerm) }
-                .executes { ctx -> CommandErrors.handle(ctx.source, matchEngine.forceStart(getOnlinePlayers())) })
+                .executes { ctx ->
+                    if (!guardSession(reportPort, ctx.source)) return@executes 0
+                    CommandErrors.handle(ctx.source, matchEngine.forceStart(getOnlinePlayers()))
+                })
             then(Commands.literal("end")
                 .requires { it.sender.hasPermission(frontmanPerm) }
                 .executes { ctx -> CommandErrors.handle(ctx.source, matchEngine.forceEnd()) })
@@ -78,6 +105,7 @@ object MatchCommand {
             )
         }
 
+        ReportCommand.attach(rootNode, reportPort, scheduler, logger, outbound)
         return rootNode.build()
     }
 

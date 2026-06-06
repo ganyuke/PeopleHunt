@@ -3,10 +3,12 @@ package io.github.ganyuke.peoplehunt.core.services.reporting.persistence
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.core.events.models.*
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportDocument
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.EventFrame
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportDocument
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.ReportJson
 import io.github.ganyuke.peoplehunt.core.testutil.player
 import io.github.ganyuke.peoplehunt.core.testutil.pos
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
@@ -16,15 +18,16 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 class JsonReplaySerializerTest {
 
-    private val serializer = JsonStorage()
+    private val json: Json = ReportJson.instance
 
     private inline fun <reified T> roundTrip(value: T): T {
-        val encoded = serializer.json.encodeToString(value)
-        return serializer.json.decodeFromString(encoded)
+        val encoded = json.encodeToString(value)
+        return json.decodeFromString(encoded)
     }
 
     // -------------------------------------------------------------------------
@@ -41,9 +44,9 @@ class JsonReplaySerializerTest {
             val p = MatchPlayer(Uuid.parse("11111111-1111-1111-1111-111111111111"), "test")
             val pos = Pos4(0, 64, 0, Uuid.parse("22222222-2222-2222-2222-222222222222"))
             val vel = Velocity(0.0, 0.0, 0.0)
-            val now = Clock.System.now()
+            val now = Instant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds())
             return listOf(
-                "PlayerMoved" to ReportablePayload.PlayerMovedByBlock(p, pos, 0f, 0f, false, false, false, false, false),
+                "PlayerMoved" to ReportablePayload.PlayerMovedByBlock(p, pos, false),
                 "PlayerRespawned" to ReportablePayload.PlayerRespawned(p, pos),
                 "TeleportSnapshot" to ReportablePayload.TeleportSnapshot(p, pos, pos, TeleportCause.ENDER_PEARL),
                 "PlayerGameModeChanged" to ReportablePayload.PlayerGameModeChanged(p, "SURVIVAL", "CREATIVE"),
@@ -126,7 +129,7 @@ class JsonReplaySerializerTest {
     @ParameterizedTest
     @MethodSource("providePayloadClasses")
     fun `every sealed subclass of ReportablePayload has a compiler-generated serializer`(payloadClass: KClass<out ReportablePayload>) {
-        val s = serializer.json.serializersModule.serializer(payloadClass.java)
+        val s = json.serializersModule.serializer(payloadClass.java)
         assertNotNull(s, "Serializer for ${payloadClass.simpleName} should not be null")
     }
 
@@ -134,8 +137,8 @@ class JsonReplaySerializerTest {
     @MethodSource("providePayloadInstances")
     fun `every ReportablePayload round-trips through JSON`(pair: Pair<String, ReportablePayload>) {
         val (name, payload) = pair
-        val encoded = serializer.json.encodeToString(payload)
-        val decoded = serializer.json.decodeFromString<ReportablePayload>(encoded)
+        val encoded = json.encodeToString(payload)
+        val decoded = json.decodeFromString<ReportablePayload>(encoded)
         assertEquals(payload, decoded, "Round-trip failed for $name")
     }
 
@@ -143,8 +146,8 @@ class JsonReplaySerializerTest {
     @MethodSource("provideSpeedrunMilestones")
     fun `every SpeedrunMilestone variant round-trips through JSON`(pair: Pair<String, SpeedrunMilestone>) {
         val (name, milestone) = pair
-        val encoded = serializer.json.encodeToString(milestone)
-        val decoded = serializer.json.decodeFromString<SpeedrunMilestone>(encoded)
+        val encoded = json.encodeToString(milestone)
+        val decoded = json.decodeFromString<SpeedrunMilestone>(encoded)
         assertEquals(milestone, decoded, "Round-trip failed for SpeedrunMilestone.$name")
     }
 
@@ -152,25 +155,27 @@ class JsonReplaySerializerTest {
     // SPECIALIZED SERIALIZERS: UUID
     // -------------------------------------------------------------------------
 
+    private fun testInstant() = Instant.fromEpochMilliseconds(Clock.System.now().toEpochMilliseconds())
+
     @Test
     fun uuidSerializer_serializesAsString() {
         val uuid = Uuid.random()
         val doc = ReportDocument(
-            matchId = "test", startedAt = Clock.System.now(),
+            matchId = uuid, startedAt = testInstant(),
             runner = MatchPlayer(uuid, "runner"), hunters = emptyList(),
-            durationTicks = 0, frames = emptyList(),
+            durationTicks = 0, projectiles = emptyList(), snapshots = emptyList(), events = emptyList(),
         )
-        val json = serializer.json.encodeToString(doc)
-        assertTrue(json.contains("\"$uuid\""), "UUID should appear as a plain string in JSON")
+        val encoded = json.encodeToString(doc)
+        assertTrue(encoded.contains("\"${uuid.toString().replace("-", "")}\""), "UUID should appear as compact string in JSON")
     }
 
     @Test
     fun uuidSerializer_roundTrip() {
         val uuid = Uuid.random()
         val doc = ReportDocument(
-            matchId = "test", startedAt = Clock.System.now(),
+            matchId = uuid, startedAt = testInstant(),
             runner = MatchPlayer(uuid, "runner"), hunters = emptyList(),
-            durationTicks = 0, frames = emptyList(),
+            durationTicks = 0, projectiles = emptyList(), snapshots = emptyList(), events = emptyList(),
         )
         val decoded = roundTrip(doc)
         assertEquals(uuid, decoded.runner.uuid)
@@ -181,24 +186,24 @@ class JsonReplaySerializerTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun instantSerializer_serializesAsString() {
-        val instant = Clock.System.now()
+    fun instantSerializer_serializesAsEpochMillis() {
+        val instant = testInstant()
         val doc = ReportDocument(
-            matchId = "test", startedAt = instant,
+            matchId = Uuid.random(), startedAt = instant,
             runner = player(), hunters = emptyList(),
-            durationTicks = 0, frames = emptyList(),
+            durationTicks = 0, projectiles = emptyList(), snapshots = emptyList(), events = emptyList(),
         )
-        val json = serializer.json.encodeToString(doc)
-        assertTrue(json.contains(instant.toString()), "Instant should appear as its string representation in JSON")
+        val encoded = json.encodeToString(doc)
+        assertTrue(encoded.contains(instant.toEpochMilliseconds().toString()), "Instant should appear as epoch millis in JSON")
     }
 
     @Test
     fun instantSerializer_roundTrip() {
-        val instant = Clock.System.now()
+        val instant = testInstant()
         val doc = ReportDocument(
-            matchId = "test", startedAt = instant,
+            matchId = Uuid.random(), startedAt = instant,
             runner = player(), hunters = emptyList(),
-            durationTicks = 0, frames = emptyList(),
+            durationTicks = 0, projectiles = emptyList(), snapshots = emptyList(), events = emptyList(),
         )
         val decoded = roundTrip(doc)
         assertEquals(instant, decoded.startedAt)
@@ -211,18 +216,16 @@ class JsonReplaySerializerTest {
     @Test
     fun replayFrame_roundTrip() {
         val p = player()
-        val now = Clock.System.now()
+        val now = testInstant()
         val frame = EventFrame(
-            tick = 100, occurredAt = now, type = "PlayerMoved",
+            tick = 100, occurredAt = now,
             payload = ReportablePayload.PlayerMovedByBlock(
-                player = p, pos = pos(), yaw = 0f, pitch = 0f,
-                sprinting = false, sneaking = false, flying = false, swimming = false, gliding = false,
+                player = p, pos = pos(), isSneaking = false,
             ),
         )
         val decoded = roundTrip(frame)
         assertEquals(frame.tick, decoded.tick)
         assertEquals(frame.occurredAt, decoded.occurredAt)
-        assertEquals(frame.type, decoded.type)
         assertEquals(frame.payload, decoded.payload)
     }
 
@@ -230,17 +233,18 @@ class JsonReplaySerializerTest {
     fun replayDocument_roundTrip() {
         val p = player()
         val hunter = player("hunter")
-        val now = Clock.System.now()
+        val now = testInstant()
         val frame = EventFrame(
-            tick = 50, occurredAt = now, type = "PlayerDied",
+            tick = 50, occurredAt = now,
             payload = ReportablePayload.PlayerDied(
                 player = p, pos = pos(), cause = KillCause.KilledByPlayer(hunter), deathMessage = "was slain",
             ),
         )
+        val matchId = Uuid.parse("550e8400-e29b-41d4-a716-446655440000")
         val doc = ReportDocument(
-            matchId = "550e8400-e29b-41d4-a716-446655440000",
+            matchId = matchId,
             startedAt = now, runner = p, hunters = listOf(hunter),
-            durationTicks = 50, frames = listOf(frame),
+            durationTicks = 50, projectiles = emptyList(), snapshots = emptyList(), events = listOf(frame),
         )
         val decoded = roundTrip(doc)
         assertEquals(doc.matchId, decoded.matchId)
@@ -248,20 +252,20 @@ class JsonReplaySerializerTest {
         assertEquals(doc.runner, decoded.runner)
         assertEquals(doc.hunters, decoded.hunters)
         assertEquals(doc.durationTicks, decoded.durationTicks)
-        assertEquals(1, decoded.frames.size)
-        assertEquals(doc.frames[0].payload, decoded.frames[0].payload)
+        assertEquals(1, decoded.events.size)
+        assertEquals(doc.events[0].payload, decoded.events[0].payload)
     }
 
     @Test
     fun replayDocument_emptyFrames_roundTrip() {
         val doc = ReportDocument(
-            matchId = "empty", startedAt = Clock.System.now(),
+            matchId = Uuid.random(), startedAt = testInstant(),
             runner = player(), hunters = emptyList(),
-            durationTicks = 0, frames = emptyList(),
+            durationTicks = 0, projectiles = emptyList(), snapshots = emptyList(), events = emptyList(),
         )
         val decoded = roundTrip(doc)
         assertEquals(doc.matchId, decoded.matchId)
-        assertEquals(0, decoded.frames.size)
+        assertTrue(decoded.events.isEmpty())
         assertTrue(decoded.hunters.isEmpty())
     }
 }

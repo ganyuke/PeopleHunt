@@ -180,13 +180,49 @@ Rewritten in Kotlin from the ground-up based on the monstrous codebase that was 
 
 **Goal**: Actually persist the thousands of data points that this plugin collects.
 
-* [ ] **SQLite Database:** Draft and implement asynchronous SQLite database to persist all collected reporting data to disk.
-* [ ] **Operator Transparency:** Notify online operators when the SQLite database reporting fails to write.
+### Storage & schema
+
+* [x] **SQLite per-match DB** (`reports/{compactUuid}.db`) via `SqliteStorage` on `Dispatchers.IO`
+* [x] **Schema:** `players` (roles TEXT), `match_info` (FK to runner), `flush_batches` (gzip BLOBs + `flush_time` epoch millis)
+* [x] **`verifyStorage()`** JSONB health probe at plugin enable; disable plugin on failure
+* [x] **`FlushBatchCodec`** gzip round-trip for snapshot/projectile/event frame arrays
+* [x] **Delete `JsonStorage`** — replaced by SQLite + `WebReportSerializer`
+
+### Application layer
+
+* [x] **`ReportInboundPort`** + **`ReportService`** facade (`blockReason`, `manualFlush`, `clear`, `export`, `listExportableMatchIds`)
+* [x] **`ReportStenographer`** session state machine (`CLOSED`, `RECORDING`, `OPEN_FAILED`, `FINALIZE_PENDING`)
+* [x] **Retain buffers on failed write**; clear only after successful `appendFlush`
+* [x] **`ReportFlushScheduler`** — wall-clock auto-flush anchored to match start; paused on `OPEN_FAILED`, resumes on recovery
+* [x] **`MatchEvent.ReportPersisted`** posted after successful finalize
+* [x] **`ReportExportHandler`** auto-exports `reports/{id}.json` on `ReportPersisted`
+* [x] **`WebReportSerializer`** / **`SqliteReportReader`** — single export code path reading `.db`
+
+### Config
+
+* [x] **`report-flush-interval-minutes`** in `config.yml`, `ConfigLoader`, `PhConfig`, test fakes
+
+### Commands & wiring
+
+* [x] **`MatchCommand`** session gate on `/ph prime` and `/ph start` (no `MatchEngine` reporting dependency)
+* [x] **`/ph report flush|clear|export <match_id>`** via `ReportCommand` + `ReportCommandFeedback` (async IO, main-thread sender/logger)
+* [x] **`PeopleHunt.kt`** wires storage, stenographer, export handler, bus listeners, shutdown hooks
+
+### Operator transparency
+
+* [x] **`OperatorNotification`** (yellow) on automatic persistence/export failures
+* [x] **Command sender feedback** (red/green) for `/ph report` and session-gate rejections
+* [x] **`LoggerPort`** for all flush/finalize/export success and failure paths
+
+### Tests
+
+* [x] `ReportServiceTest`, `MatchCommandGateTest`, `ReportFlushSchedulerTest`, `FlushBatchCodecTest`
+* [x] `SqliteStorageLifecycleTest`, `SqliteStorageVerifyTest`, `ReportStenographerFailureTest`, `WebReportSerializerTest`, `ConfigLoaderTest`
 
 ### Implementation details
 
-* Must be careful to implement the SQLite writes asynchronously to avoid blocking the main thread.
-* The previous plugin periodically appended data from the reporting engine to disk (esp. for paths) so doing that again might be okay.
+* SQLite writes run asynchronously; logger, bus, and command sender only on main thread via `SchedulerPort.runOnMainThread`.
+* Periodic flush appends in-memory frames to disk without blocking match gameplay.
 
 ---
 

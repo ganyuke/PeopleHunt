@@ -3,6 +3,7 @@ package io.github.ganyuke.peoplehunt.core.testutil
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.reporting.ReportingEngine
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportStenographer
 import io.github.ganyuke.peoplehunt.core.utils.PhConfig
 
 data class MatchEngineFixture(
@@ -25,3 +26,25 @@ data class ReportingEngineFixture(
 fun reportingEngineFixture(
     logger: FakeLogger = FakeLogger()
 ) = ReportingEngineFixture(ReportingEngine(logger), logger)
+
+data class ReportStenographerFixture(
+    val stenographer: ReportStenographer,
+    val storage: FakeReportStorage,
+    val scheduler: FakeScheduler,
+    val logger: FakeLogger,
+    val bus: MatchEventBus,
+)
+
+fun reportStenographerFixture(
+    scheduler: FakeScheduler = FakeScheduler(),
+    bus: MatchEventBus = MatchEventBus(),
+    logger: FakeLogger = FakeLogger(),
+    storage: FakeReportStorage = FakeReportStorage(),
+    config: PhConfig = testPhConfig(reportFlushInterval = kotlin.time.Duration.ZERO),
+) = ReportStenographerFixture(
+    ReportStenographer(bus, scheduler, logger, storage, config),
+    storage,
+    scheduler,
+    logger,
+    bus,
+)

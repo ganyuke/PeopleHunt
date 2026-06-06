@@ -14,7 +14,8 @@ fun testPhConfig(
     globalCompass: Boolean = true,
     matchMinutesInterval: Duration = Duration.ZERO,
     compassTickInterval: Long = 20L,
-) = PhConfig(globalCompass, matchMinutesInterval, compassTickInterval)
+    reportFlushInterval: Duration = 5.minutes,
+) = PhConfig(globalCompass, matchMinutesInterval, compassTickInterval, reportFlushInterval)
 
 fun testPhConfigWithInterval(minutes: Long = 1L) =
     testPhConfig(matchMinutesInterval = minutes.minutes)
