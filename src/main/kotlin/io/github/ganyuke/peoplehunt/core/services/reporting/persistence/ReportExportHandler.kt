@@ -2,8 +2,8 @@ package io.github.ganyuke.peoplehunt.core.services.reporting.persistence
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
-import io.github.ganyuke.peoplehunt.core.ports.LoggerPort
-import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.LoggerPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.SchedulerPort
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.WebReportSerializer
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.CoroutineScope

@@ -7,7 +7,7 @@ import io.github.ganyuke.peoplehunt.core.events.models.KillCause
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import io.github.ganyuke.peoplehunt.core.events.models.OnlineState
 import io.github.ganyuke.peoplehunt.core.events.models.PlayerSnapshot
-import io.github.ganyuke.peoplehunt.core.ports.LoggerPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.LoggerPort
 import io.github.ganyuke.peoplehunt.core.utils.isReally
 import io.github.ganyuke.peoplehunt.core.utils.reallyContains
 

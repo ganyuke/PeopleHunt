@@ -1,6 +1,6 @@
 package io.github.ganyuke.peoplehunt.paper.adapters
 
-import io.github.ganyuke.peoplehunt.core.ports.LoggerPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.LoggerPort
 import org.bukkit.plugin.java.JavaPlugin
 
 class PaperLoggerAdapter(private val plugin: JavaPlugin) : LoggerPort {

@@ -1,4 +1,4 @@
-package io.github.ganyuke.peoplehunt.core.ports
+package io.github.ganyuke.peoplehunt.core.ports.outbound
 
 interface TaskHandle {
     fun cancel()

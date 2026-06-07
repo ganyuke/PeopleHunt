@@ -1,7 +1,8 @@
 package io.github.ganyuke.peoplehunt.paper.utils
 
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
 import io.github.ganyuke.peoplehunt.core.services.reporting.CombatStatsTracker
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.minimessage.MiniMessage
@@ -14,28 +15,28 @@ import kotlin.time.toJavaInstant
 object MatchStatusFormatter {
     private val mm = MiniMessage.miniMessage()
 
-    fun format(status: MatchEngine.MatchState, reportedStats: List<Pair<MatchPlayer, CombatStatsTracker.PlayerStats>>?): Component = when (status) {
-        is MatchEngine.MatchState.Idle -> buildMessage("PEOPLEHUNT STATUS") {
+    fun format(status: MatchState, reportedStats: List<Pair<MatchPlayer, CombatStatsTracker.PlayerStats>>?): Component = when (status) {
+        is MatchState.Idle -> buildMessage("PEOPLEHUNT STATUS") {
             line("State", "<gray><b>IDLE</b></gray>")
             line("Runner", status.runner?.name ?: "none")
             line("Hunters",
                 if (status.hunters.isEmpty()) "all online players" else status.hunters.joinNames()
             )
         }
-        is MatchEngine.MatchState.Primed -> buildMessage("PEOPLEHUNT STATUS") {
+        is MatchState.Primed -> buildMessage("PEOPLEHUNT STATUS") {
             line("State", "<aqua><b>PRIMED</b></aqua>")
             line("Runner", status.runner.name)
             line("Hunters", status.hunters.joinNames())
             line("Primed at", status.primedAt.format())
         }
-        is MatchEngine.MatchState.Active -> buildMessage("PEOPLEHUNT STATUS") {
+        is MatchState.Active -> buildMessage("PEOPLEHUNT STATUS") {
             line("State", "<green><b>ACTIVE</b></green>")
             line("Runner", status.runner.name)
             line("Hunters", status.hunters.joinNames())
             line("Started", status.startedAt.format())
             line("Elapsed", status.startedAt.elapsed())
         }
-        is MatchEngine.MatchState.Finished -> buildMessage("POST-MATCH STATS") {
+        is MatchState.Finished -> buildMessage("POST-MATCH STATS") {
             line("Result", status.outcome.colored())
             line("Runner", status.runner.name)
             line("Started", status.startedAt.format())
@@ -100,9 +101,9 @@ object MatchStatusFormatter {
         return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
     }
 
-    private fun MatchEngine.MatchOutcome.colored(): String = when (this) {
-        MatchEngine.MatchOutcome.HUNTER_VICTORY -> "<red><b>Hunter Victory</b></red>"
-        MatchEngine.MatchOutcome.RUNNER_VICTORY -> "<green><b>Runner Victory</b></green>"
-        MatchEngine.MatchOutcome.INCONCLUSIVE   -> "<yellow><b>Inconclusive</b></yellow>"
+    private fun MatchOutcome.colored(): String = when (this) {
+        MatchOutcome.HUNTER_VICTORY -> "<red><b>Hunter Victory</b></red>"
+        MatchOutcome.RUNNER_VICTORY -> "<green><b>Runner Victory</b></green>"
+        MatchOutcome.INCONCLUSIVE   -> "<yellow><b>Inconclusive</b></yellow>"
     }
 }

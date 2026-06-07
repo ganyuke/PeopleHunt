@@ -2,8 +2,8 @@ package io.github.ganyuke.peoplehunt.core.services.core
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
-import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
-import io.github.ganyuke.peoplehunt.core.ports.TaskHandle
+import io.github.ganyuke.peoplehunt.core.ports.outbound.SchedulerPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.TaskHandle
 import io.github.ganyuke.peoplehunt.core.utils.PhConfig
 import kotlinx.coroutines.*
 import kotlin.math.roundToLong

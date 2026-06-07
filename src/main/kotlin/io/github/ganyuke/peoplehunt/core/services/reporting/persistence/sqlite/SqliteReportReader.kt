@@ -1,7 +1,7 @@
 package io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite
 
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.EventFrame
 import kotlinx.serialization.json.Json
 import java.nio.file.Path
@@ -14,7 +14,7 @@ data class PersistedMatchReport(
     val startedAt: Instant,
     val endedAt: Instant?,
     val durationTicks: Int?,
-    val outcome: MatchEngine.MatchOutcome?,
+    val outcome: MatchOutcome?,
     val runner: MatchPlayer,
     val hunters: List<MatchPlayer>,
     val snapshotFrames: List<EventFrame>,
@@ -41,7 +41,7 @@ object SqliteReportReader {
                         endedAt = (rs.getObject("ended_at") as? Number)?.toLong()
                             ?.let(Instant::fromEpochMilliseconds),
                         durationTicks = rs.getObject("duration_ticks") as? Int,
-                        outcome = rs.getString("outcome")?.let { MatchEngine.MatchOutcome.valueOf(it) },
+                        outcome = rs.getString("outcome")?.let { MatchOutcome.valueOf(it) },
                         runner = MatchPlayer(
                             Uuid.fromCompactString(rs.getString("runner_uuid")),
                             rs.getString("runner_name"),
@@ -98,7 +98,7 @@ object SqliteReportReader {
         val startedAt: Instant,
         val endedAt: Instant?,
         val durationTicks: Int?,
-        val outcome: MatchEngine.MatchOutcome?,
+        val outcome: MatchOutcome?,
         val runner: MatchPlayer,
     )
 }

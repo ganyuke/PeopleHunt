@@ -19,13 +19,13 @@ class ConfigLoaderTest {
     assertEquals(false, config.globalCompass)
     assertEquals(30.minutes, config.matchMinutesInterval)
     assertEquals(8L, config.compassTickInterval)
-    assertEquals(10.minutes, config.reportFlushInterval)
+    assertEquals(10.minutes, config.flushMinutesInterval)
   }
 
   @Test
   fun load_usesDefaultReportFlushInterval() {
     val yaml = YamlConfiguration()
     val config = ConfigLoader.load(Logger.getLogger("test"), yaml)
-    assertEquals(5.minutes, config.reportFlushInterval)
+    assertEquals(5.minutes, config.flushMinutesInterval)
   }
 }

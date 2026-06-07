@@ -1,9 +1,8 @@
 package io.github.ganyuke.peoplehunt.core.testutil
 
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportStorage
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportStorage
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.FrameBatch
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.MatchOpenSession
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
@@ -22,7 +21,7 @@ class FakeReportStorage : ReportStorage {
     data class FinalizeCall(
         val matchId: Uuid,
         val endedAt: Instant,
-        val outcome: MatchEngine.MatchOutcome,
+        val outcome: MatchOutcome,
         val durationTicks: Int,
     )
 
@@ -39,7 +38,7 @@ class FakeReportStorage : ReportStorage {
     override suspend fun finalizeMatch(
         matchId: Uuid,
         endedAt: Instant,
-        outcome: MatchEngine.MatchOutcome,
+        outcome: MatchOutcome,
         durationTicks: Int,
     ) {
         if (failFinalize) error("finalizeMatch failed")

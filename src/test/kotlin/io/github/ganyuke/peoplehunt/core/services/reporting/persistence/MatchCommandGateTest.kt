@@ -1,7 +1,8 @@
 package io.github.ganyuke.peoplehunt.core.services.reporting.persistence
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
 import io.github.ganyuke.peoplehunt.core.testutil.player
 import io.github.ganyuke.peoplehunt.core.testutil.reportStenographerFixture
 import kotlin.test.Test
@@ -12,7 +13,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 
 /**
- * Exercises the same session gate logic used by [io.github.ganyuke.peoplehunt.paper.command.match.MatchCommand.guardSession].
+ * Exercises the same session gate logic used by [io.github.ganyuke.peoplehunt.paper.command.PhCommand.guardSession].
  */
 class MatchCommandGateTest {
   @Test
@@ -47,8 +48,8 @@ class MatchCommandGateTest {
     fixture.storage.failFinalize = true
     fixture.stenographer.onMatchEvent(
       MatchEvent.MatchEnd(
-        MatchEngine.MatchState.Finished(
-          runner, emptySet(), Clock.System.now(), Clock.System.now(), MatchEngine.MatchOutcome.INCONCLUSIVE,
+        MatchState.Finished(
+          runner, emptySet(), Clock.System.now(), Clock.System.now(), MatchOutcome.INCONCLUSIVE,
         ),
       ),
     )

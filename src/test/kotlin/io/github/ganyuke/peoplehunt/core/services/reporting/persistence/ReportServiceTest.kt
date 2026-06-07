@@ -36,7 +36,7 @@ class ReportServiceTest {
   }
 
   @Test
-  fun listExportableMatchIds_findsDbFiles() = runBlocking {
+  fun fetchMatchIdList_findsDbFiles() = runBlocking {
     val dir = Files.createTempDirectory("ph-list")
     val storage = SqliteStorage(dir, ReportJson.instance)
     val fixture = reportStenographerFixture()
@@ -48,7 +48,7 @@ class ReportServiceTest {
     val matchId = Uuid.random()
     dir.resolve("${matchId.toCompactString()}.db").toFile().writeText("placeholder")
 
-    val ids = service.listExportableMatchIds()
+    val ids = service.fetchMatchIdList()
     assertEquals(listOf(matchId), ids)
   }
 

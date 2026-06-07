@@ -1,9 +1,9 @@
 package io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite
 
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.EventFrame
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.FrameBatch
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.MatchOpenSession
 import io.github.ganyuke.peoplehunt.core.testutil.player
 import io.github.ganyuke.peoplehunt.core.testutil.projectileLaunched
 import java.nio.file.Files
@@ -61,7 +61,7 @@ class WebReportSerializerTest {
       ),
       startedAt,
     )
-    storage.finalizeMatch(matchId, startedAt, io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.MatchOutcome.RUNNER_VICTORY, 1)
+    storage.finalizeMatch(matchId, startedAt, MatchOutcome.RUNNER_VICTORY, 1)
     storage.closeActive()
 
     val json = serializer.export(matchId).toFile().readText()

@@ -1,4 +1,4 @@
-package io.github.ganyuke.peoplehunt.core.ports
+package io.github.ganyuke.peoplehunt.core.ports.outbound
 
 interface LoggerPort {
     fun info(message: String)

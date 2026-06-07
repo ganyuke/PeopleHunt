@@ -1,9 +1,9 @@
 package io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite
 
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.EventFrame
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.FrameBatch
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.MatchOpenSession
 import io.github.ganyuke.peoplehunt.core.testutil.player
 import io.github.ganyuke.peoplehunt.core.testutil.playerJoined
 import io.github.ganyuke.peoplehunt.core.testutil.playerSnapshotChanged
@@ -61,7 +61,7 @@ class SqliteStorageAppendTest {
     storage.finalizeMatch(
       matchId,
       startedAt,
-      io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.MatchOutcome.INCONCLUSIVE,
+      MatchOutcome.INCONCLUSIVE,
       4,
     )
 

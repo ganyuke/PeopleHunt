@@ -2,9 +2,9 @@ package io.github.ganyuke.peoplehunt.core.testutil
 
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import io.github.ganyuke.peoplehunt.core.events.models.Pos4
-import io.github.ganyuke.peoplehunt.core.ports.LoggerPort
-import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
-import io.github.ganyuke.peoplehunt.core.ports.TaskHandle
+import io.github.ganyuke.peoplehunt.core.ports.outbound.LoggerPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.SchedulerPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.TaskHandle
 import io.github.ganyuke.peoplehunt.core.utils.PhConfig
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes

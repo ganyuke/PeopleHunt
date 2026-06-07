@@ -1,390 +1,160 @@
 package io.github.ganyuke.peoplehunt.core.services.reporting.persistence
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
-import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
-import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
-import io.github.ganyuke.peoplehunt.core.ports.LoggerPort
-import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
-import io.github.ganyuke.peoplehunt.core.ports.TaskHandle
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.EventFrame
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.FrameBatch
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.MatchOpenSession
-import io.github.ganyuke.peoplehunt.core.utils.PhConfig
-import kotlin.time.Clock
-import kotlin.time.Duration
-import kotlin.time.Instant
-import kotlin.uuid.Uuid
+import io.github.ganyuke.peoplehunt.core.ports.inbound.StenographerPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.LoggerPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.TaskHandle
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.FinalizedMetadata
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlin.math.max
+import kotlin.math.roundToLong
+import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Instant
 
 class ReportStenographer(
-    private val outbound: MatchEventBus,
-    private val scheduler: SchedulerPort,
-    private val logger: LoggerPort,
-    private val storage: ReportStorage,
-    private val config: PhConfig,
-) {
-    private val scopeJob = SupervisorJob()
-    private val scope = CoroutineScope(Dispatchers.IO + scopeJob)
-    private val storageMutex = Mutex()
-    private val projectiles = mutableListOf<EventFrame>()
-    private val snapshots = mutableListOf<EventFrame>()
-    private val events = mutableListOf<EventFrame>()
+    val logger: LoggerPort
+) : StenographerPort {
+    sealed interface ReportState {
+        val session: ReportSession
 
-    private var sessionState = ReportSessionState.CLOSED
-    private var matchId: Uuid? = null
-    private var matchStartTime: Instant? = null
-    private var openSession: MatchOpenSession? = null
-    private var pendingFinalize: PendingFinalize? = null
-    private var lastTick = 0
+        // init state, finished final write state
+        object Closed : ReportState {
+            override val session: ReportSession = error("tried to access session for closed session")
+        }
 
-    private var flushScheduler: ReportFlushScheduler? = null
-    private var flushTask: TaskHandle? = null
+        // match start state, creating DB state
+        data class Initializing(
+            override val session: ReportSession
+        ) : ReportState
 
-    private data class PendingFinalize(
-        val endedAt: Instant,
-        val outcome: MatchEngine.MatchOutcome,
-        val durationTicks: Int,
-    )
+        // match start state, open DB failed, allow manual flush
+        data class InitializedFailed(
+            override val session: ReportSession
+        ) : ReportState
 
-    fun blockReason(): ReportSessionBlockReason? = when (sessionState) {
-        ReportSessionState.CLOSED -> null
-        ReportSessionState.RECORDING -> ReportSessionBlockReason.SESSION_ALREADY_ACTIVE
-        ReportSessionState.OPEN_FAILED -> ReportSessionBlockReason.DATABASE_OPEN_FAILED
-        ReportSessionState.FINALIZE_PENDING -> ReportSessionBlockReason.FINALIZE_PENDING
+        // successfully opened DB state, primary state
+        data class Active(
+            override val session: ReportSession
+        ) : ReportState
+
+        // match end state, awaiting final flush to disk
+        data class Finalizing(
+            override val session: ReportSession,
+            val metadata: FinalizedMetadata
+        ) : ReportState
+
+        // match end state, failed final flush to disk, allow manual flush
+        data class FinalizeFailed(
+            override val session: ReportSession,
+            val metadata: FinalizedMetadata
+        ) : ReportState
+    }
+
+    var reportState: ReportState = ReportState.Closed
+
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    // todo: create task handler for flush task to handle ongoing flush operations
+
+    // todo: create task handler for interval task to handle cancelling/no-op interval operation
+
+    override val blockReason: ReportSessionBlockReason? get() = when (reportState) {
+        ReportState.Closed -> null
+        is ReportState.Active, is ReportState.Initializing, is ReportState.InitializedFailed -> ReportSessionBlockReason.SESSION_ALREADY_ACTIVE
+        is ReportState.Finalizing, is ReportState.FinalizeFailed -> ReportSessionBlockReason.FINALIZE_PENDING
+    }
+
+    override fun flush(callback: (ReportOpResult) -> Unit) {
+        // callback handles how feedback is done
+        // todo: implement flush interval task that calls this w/ operator and logger feedback
+        // todo: implement manual flush task that calls this w/ sender and logger feedback
+        // todo: implement match end flush task that calls this w/ operator and logger feedback
+
+        /* todo: manual flush has these branches:
+        *   (1) if reportState is Closed, report error: no data to flush
+        *   (2) if reportState is InitializedFailed: attempt to create DB then flush stored data
+        *   (3) if reportState is FinalizationFailed: re-attempt finalized flush to DB
+        *   (4) if reportState is Active:
+        *       (a) if DB flush already in progress: reject and notify to try again
+        *       (b) if DB flush not in progress: flush current data to DB
+        *   (5) if reportState is either Initializing or Finalizing: block writes; report is doing DB work
+        */
+
+        // todo: autoflush will be skipped if the interval hits while it is already flushing data to DB
+    }
+
+    override fun discard(): ReportOpResult {
+        reportState = ReportState.Closed
+        return ReportOpResult.Ok("Discarded reporting session. Match must be (re)started to resume reporting.")
     }
 
     fun onMatchEvent(event: MatchEvent) {
         when (event) {
-            is MatchEvent.MatchStart -> beginSession(event)
-            is MatchEvent.MatchEnd -> endSession(event)
+            is MatchEvent.MatchStart -> openSession(event)
+            is MatchEvent.MatchEnd -> closeSession(event)
             else -> {}
         }
     }
 
     fun onReportableEvent(event: ReportableEvent) {
-        if (sessionState == ReportSessionState.CLOSED) return
-        val frame = EventFrame(event.tick, event.occurredAt, event.payload)
-        when (event.payload) {
-            is ReportablePayload.PlayerMovedByBlock -> {} // don't bother saving this, already covered by poll
-            is ReportablePayload.ProjectileLaunched,
-            is ReportablePayload.ProjectileMoved,
-            is ReportablePayload.ProjectileHit -> projectiles += frame
+        val state = reportState
+        if (state is ReportState.Closed ||
+            state is ReportState.Finalizing ||
+            state is ReportState.FinalizeFailed
+        ) return
 
-            is ReportablePayload.PlayerSnapshotChanged -> snapshots += frame
-            else -> events += frame
+        val newSession = state.session.withEvent(event)
+        val newState = when (state) {
+            is ReportState.Initializing -> state.copy(session = newSession)
+            is ReportState.InitializedFailed -> state.copy(session = newSession)
+            is ReportState.Active -> state.copy(session = newSession)
         }
-        lastTick = max(lastTick, event.tick)
+
+        reportState = newState
     }
 
-    suspend fun manualFlush(): ReportOpResult = when (sessionState) {
-        ReportSessionState.CLOSED -> ReportOpResult.Err(ReportOpFailure.NO_OPEN_SESSION)
-        ReportSessionState.RECORDING -> flushRecording(manual = true)
-        ReportSessionState.OPEN_FAILED -> recoverOpenFailed(manual = true)
-        ReportSessionState.FINALIZE_PENDING -> finalizePending(manual = true)
-    }
-
-    fun clear(): ReportOpResult {
-        if (sessionState == ReportSessionState.CLOSED) {
-            return ReportOpResult.Err(ReportOpFailure.NO_OPEN_SESSION)
-        }
-        stopFlushScheduler()
-        storage.closeActive()
-        resetBuffers()
-        openSession = null
-        pendingFinalize = null
-        matchId = null
-        matchStartTime = null
-        sessionState = ReportSessionState.CLOSED
-        scheduler.runOnMainThread {
-            logger.info("Report session cleared; in-memory data discarded.")
-        }
-        return ReportOpResult.Ok("In-memory report data cleared.")
-    }
-
-    fun shutdown() {
-        stopFlushScheduler()
-        storage.closeActive()
-        scopeJob.cancel()
-    }
-
-    private fun beginSession(event: MatchEvent.MatchStart) {
-        resetBuffers()
-        lastTick = 0
-        val id = Uuid.random()
-        val startedAt = Clock.System.now()
-        matchId = id
-        matchStartTime = startedAt
-        openSession = MatchOpenSession(
-            matchId = id,
-            startedAt = startedAt,
-            runner = event.runner,
-            hunters = event.hunters.toList(),
-        )
-        sessionState = ReportSessionState.RECORDING
-
-        scope.launch {
-            runCatching { storageMutex.withLock { storage.openMatch(openSession!!) } }
-                .onSuccess {
-                    scheduler.runOnMainThread {
-                        startFlushScheduler(startedAt)
-                        logger.info("Opened report database for match ${id.toCompactLog()}.")
-                    }
-                }
-                .onFailure { cause ->
-                    sessionState = ReportSessionState.OPEN_FAILED
-                    stopFlushScheduler()
-                    reportError(
-                        cause,
-                        "Failed to open report database",
-                        "Failed to open report database — run /ph report flush to retry",
-                    )
-                }
-        }
-    }
-
-    private fun endSession(event: MatchEvent.MatchEnd) {
-        val result = event.result
-        pendingFinalize = PendingFinalize(
-            endedAt = result.endedAt,
-            outcome = result.outcome,
-            durationTicks = lastTick,
-        )
-        stopFlushScheduler()
-
-        scope.launch {
-            when (sessionState) {
-                ReportSessionState.OPEN_FAILED, ReportSessionState.RECORDING -> {
-                    val openResult = if (sessionState == ReportSessionState.OPEN_FAILED) {
-                        runCatching { storageMutex.withLock { storage.openMatch(openSession!!) } }
-                    } else {
-                        Result.success(Unit)
-                    }
-                    openResult
-                        .onFailure { cause ->
-                            sessionState = ReportSessionState.FINALIZE_PENDING
-                            reportError(
-                                cause,
-                                "Match ended but report could not be opened",
-                                "Match ended but report was not saved — run /ph report flush",
-                            )
-                        }
-                        .onSuccess {
-                            flushAndFinalize(manual = false)
-                        }
-                }
-
-                ReportSessionState.FINALIZE_PENDING -> flushAndFinalize(manual = false)
-                ReportSessionState.CLOSED -> {}
-            }
-        }
-    }
-
-    private suspend fun flushRecording(manual: Boolean): ReportOpResult {
-        val batch = drainBatch()
-        if (batch.isEmpty()) return ReportOpResult.Err(ReportOpFailure.NOTHING_TO_FLUSH)
-        return appendBatch(batch, manual = manual, recovery = false)
-    }
-
-    private suspend fun recoverOpenFailed(manual: Boolean): ReportOpResult {
-        val session = openSession ?: return ReportOpResult.Err(ReportOpFailure.NO_OPEN_SESSION)
-        val batch = drainBatch()
-        if (batch.isEmpty() && !manual) return ReportOpResult.Err(ReportOpFailure.NOTHING_TO_FLUSH)
-
-        return runCatching { storageMutex.withLock { storage.openMatch(session) } }
-            .fold(
-                onSuccess = {
-                    val flushBatch = if (batch.isEmpty()) currentBatch() else batch
-                    if (flushBatch.isEmpty()) {
-                        sessionState = ReportSessionState.RECORDING
-                        scheduler.runOnMainThread {
-                            val anchor = matchStartTime
-                            if (anchor != null) resumeFlushScheduler(anchor)
-                            logger.info("Opened report database for match ${session.matchId.toCompactLog()}; no frames to flush yet.")
-                        }
-                        ReportOpResult.Ok("Report database opened.")
-                    } else {
-                        val result = appendBatch(flushBatch, manual = manual, recovery = true)
-                        if (result is ReportOpResult.Ok) {
-                            sessionState = ReportSessionState.RECORDING
-                            scheduler.runOnMainThread {
-                                val anchor = matchStartTime
-                                if (anchor != null) resumeFlushScheduler(anchor)
-                            }
-                        }
-                        result
-                    }
-                },
-                onFailure = { cause ->
-                    reportError(
-                        cause,
-                        "Failed to open report database",
-                        "Failed to open report database — run /ph report flush to retry",
-                    )
-                    ReportOpResult.Err(ReportOpFailure.WRITE_FAILED, cause)
-                },
+    private fun openSession(event: MatchEvent.MatchStart) {
+        val match = event.result
+        reportState = ReportState.Initializing(
+            ReportSession(
+                startedAt = match.startedAt,
+                runner = match.runner,
+                hunters = match.hunters.toList(),
             )
-    }
-
-    private suspend fun finalizePending(manual: Boolean): ReportOpResult {
-        val id = matchId ?: return ReportOpResult.Err(ReportOpFailure.NO_OPEN_SESSION)
-        val finalize = pendingFinalize ?: return ReportOpResult.Err(ReportOpFailure.NOTHING_TO_FLUSH)
-        val batch = drainBatch()
-
-        if (!batch.isEmpty()) {
-            val appendResult = appendBatch(batch, manual = manual, recovery = false)
-            if (appendResult is ReportOpResult.Err) return appendResult
-        }
-
-        return runCatching {
-            storageMutex.withLock {
-                storage.finalizeMatch(id, finalize.endedAt, finalize.outcome, finalize.durationTicks)
-            }
-        }.fold(
-            onSuccess = {
-                scheduler.runOnMainThread {
-                    sessionState = ReportSessionState.CLOSED
-                    outbound.post(MatchEvent.ReportPersisted(id))
-                    resetBuffers()
-                    openSession = null
-                    pendingFinalize = null
-                    matchId = null
-                    matchStartTime = null
-                    logger.info("Finalized report for match ${id.toCompactLog()}.")
-                }
-                ReportOpResult.Ok("Report finalized for match ${id.toCompactLog()}.")
-            },
-            onFailure = { cause ->
-                sessionState = ReportSessionState.FINALIZE_PENDING
-                reportError(
-                    cause,
-                    "Failed to finalize report",
-                    "Match ended but report was not saved — run /ph report flush",
-                )
-                ReportOpResult.Err(ReportOpFailure.WRITE_FAILED, cause)
-            },
         )
     }
 
-    private suspend fun flushAndFinalize(manual: Boolean) {
-        val batch = drainBatch()
-        if (!batch.isEmpty()) {
-            val appendResult = appendBatch(batch, manual = manual, recovery = false)
-            if (appendResult is ReportOpResult.Err) {
-                sessionState = ReportSessionState.FINALIZE_PENDING
-                return
+    private fun buildFinalize(match: MatchState.Finished, session: ReportSession) = ReportState.Finalizing(
+        endedAt = match.endedAt,
+        outcome = match.outcome,
+        durationTicks = session.latestTick,
+        session = session
+    )
+
+    private fun closeSession(event: MatchEvent.MatchEnd) {
+        val match = event.result
+        val newState = when (val state = reportState) {
+            is ReportState.Active -> buildFinalize(match, state.session)
+            is ReportState.Initializing -> buildFinalize(match, state.session)
+            is ReportState.InitializedFailed -> buildFinalize(match, state.session)
+
+            is ReportState.Finalizing, is ReportState.FinalizeFailed -> {
+                logger.warn("Closed reporting session while finalizing write to disk! Data was lost!")
+                ReportState.Closed
             }
+
+            else -> ReportState.Closed
         }
-        finalizePending(manual = manual)
+
+        reportState = newState
     }
 
-    private suspend fun appendBatch(batch: FrameBatch, manual: Boolean, recovery: Boolean): ReportOpResult {
-        val id = matchId ?: return ReportOpResult.Err(ReportOpFailure.NO_OPEN_SESSION)
-        val flushTime = Clock.System.now()
-        return runCatching { storageMutex.withLock { storage.appendFlush(id, batch, flushTime) } }
-            .fold(
-                onSuccess = {
-                    clearDrained(batch)
-                    val message = buildString {
-                        append("Flushed report batch for match ${id.toCompactLog()}")
-                        append(" (snapshots=${batch.snapshots.size}, projectiles=${batch.projectiles.size}, events=${batch.events.size})")
-                        if (recovery) append(" — database recovered")
-                    }
-                    scheduler.runOnMainThread {
-                        logger.info(message)
-                    }
-                    ReportOpResult.Ok(message)
-                },
-                onFailure = { cause ->
-                    restoreDrained(batch)
-                    reportError(
-                        cause,
-                        "Report flush failed",
-                        "Report flush failed — data retained; retry at next interval or run /ph report flush",
-                    )
-                    ReportOpResult.Err(ReportOpFailure.WRITE_FAILED, cause)
-                },
-            )
-    }
-
-    private fun attemptAutoFlush() {
-        if (sessionState != ReportSessionState.RECORDING) return
-        scope.launch {
-            val batch = drainBatch()
-            if (batch.isEmpty()) return@launch
-            appendBatch(batch, manual = false, recovery = false)
-        }
-    }
-
-    private fun drainBatch(): FrameBatch {
-        val batch = FrameBatch(projectiles.toList(), snapshots.toList(), events.toList())
-        projectiles.clear()
-        snapshots.clear()
-        events.clear()
-        return batch
-    }
-
-    private fun currentBatch(): FrameBatch =
-        FrameBatch(projectiles.toList(), snapshots.toList(), events.toList())
-
-    private fun clearDrained(batch: FrameBatch) {
-        // lists already cleared in drainBatch; nothing to do
-    }
-
-    private fun restoreDrained(batch: FrameBatch) {
-        projectiles.addAll(0, batch.projectiles)
-        snapshots.addAll(0, batch.snapshots)
-        events.addAll(0, batch.events)
-    }
-
-    private fun resetBuffers() {
-        projectiles.clear()
-        snapshots.clear()
-        events.clear()
-        lastTick = 0
-    }
-
-    private fun startFlushScheduler(anchor: Instant) {
-        val schedulerInstance = flushScheduler ?: ReportFlushScheduler(
-            config.reportFlushInterval,
-            scope,
-            ::attemptAutoFlush,
-        ).also { flushScheduler = it }
-        flushTask = schedulerInstance.start(anchor)
-    }
-
-    private fun resumeFlushScheduler(anchor: Instant) {
-        val schedulerInstance = flushScheduler ?: ReportFlushScheduler(
-            config.reportFlushInterval,
-            scope,
-            ::attemptAutoFlush,
-        ).also { flushScheduler = it }
-        schedulerInstance.resume(anchor)
-        flushTask = object : TaskHandle {
-            override fun cancel() = schedulerInstance.stop()
-        }
-        attemptAutoFlush()
-    }
-
-    private fun stopFlushScheduler() {
-        flushTask?.cancel()
-        flushTask = null
-        flushScheduler?.stop()
-    }
-
-    internal fun reportError(cause: Throwable, logMessage: String, operatorMessage: String) {
-        scheduler.runOnMainThread {
-            logger.error(logMessage, cause)
-            outbound.post(MatchEvent.OperatorNotification("$operatorMessage: ${cause.message ?: "Unknown error"}"))
-        }
-    }
-
-    private fun Uuid.toCompactLog(): String = toString().replace("-", "")
 }

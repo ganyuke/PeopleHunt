@@ -5,82 +5,39 @@ import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
-import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
-import io.github.ganyuke.peoplehunt.core.ports.TaskHandle
+import io.github.ganyuke.peoplehunt.core.ports.inbound.MatchPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.SchedulerPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.TaskHandle
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchFailureReason
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchResult
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
 import io.github.ganyuke.peoplehunt.core.utils.*
 import kotlin.time.Clock
-import kotlin.time.Instant
 
 class MatchEngine(
     private val scheduler: SchedulerPort,
     private val outbound: MatchEventBus,
     private val config: PhConfig
-) {
-    enum class MatchOutcome { RUNNER_VICTORY, HUNTER_VICTORY, INCONCLUSIVE }
-
-    sealed interface MatchState {
-        val runner: MatchPlayer?
-        val hunters: Set<MatchPlayer>
-
-        data class Idle(
-            override val runner: MatchPlayer?,
-            override val hunters: Set<MatchPlayer> = emptySet(),
-        ) : MatchState
-
-        data class Primed(
-            override val runner: MatchPlayer,
-            override val hunters: Set<MatchPlayer>,
-            val primedAt: Instant,
-        ) : MatchState
-
-        data class Active(
-            override val runner: MatchPlayer,
-            override val hunters: Set<MatchPlayer>,
-            val startedAt: Instant,
-        ) : MatchState
-
-        data class Finished(
-            override val runner: MatchPlayer,
-            override val hunters: Set<MatchPlayer>,
-            val startedAt: Instant,
-            val endedAt: Instant,
-            val outcome: MatchOutcome,
-        ) : MatchState
-    }
-
-    sealed interface MatchResult {
-        data class Ok(val message: String? = null) : MatchResult
-        data class Err(val reason: FailureReason) : MatchResult
-    }
-
-    enum class FailureReason {
-        ALREADY_PRIMED,
-        ALREADY_STARTED,
-        NOT_RUNNING,
-        NO_RUNNER_SPECIFIED,
-        PLAYER_ALREADY_RUNNER,
-        PLAYER_ALREADY_HUNTER,
-        PLAYER_NOT_IN_GROUP,
-    }
-
+) : MatchPort {
     private val matchIntervalService: MatchIntervalService = MatchIntervalService(config, scheduler, outbound)
     private val tasks = mutableListOf<TaskHandle>()
 
     // need to store this to support `/ph status last` feature
-    var lastMatchResult: MatchState.Finished? = null
+    override var lastMatchResult: MatchState.Finished? = null
         private set
 
-    var currentStatus: MatchState = MatchState.Idle(null, emptySet())
+    override var currentStatus: MatchState = MatchState.Idle(null, emptySet())
         private set
 
     // put match in state where runner movement triggers start with `/ph prime`
-    fun prime(onlinePlayers: List<MatchPlayer>): MatchResult = when (val currentState = currentStatus) {
-        is MatchState.Primed -> MatchResult.Err(FailureReason.ALREADY_PRIMED)
-        is MatchState.Active -> MatchResult.Err(FailureReason.ALREADY_STARTED)
+    override fun prime(onlinePlayers: List<MatchPlayer>): MatchResult = when (val currentState = currentStatus) {
+        is MatchState.Primed -> MatchResult.Err(MatchFailureReason.ALREADY_PRIMED)
+        is MatchState.Active -> MatchResult.Err(MatchFailureReason.ALREADY_STARTED)
         is MatchState.Idle, is MatchState.Finished -> {
             val runnerCandidate = currentState.runner
             if (runnerCandidate == null) {
-                MatchResult.Err(FailureReason.NO_RUNNER_SPECIFIED)
+                MatchResult.Err(MatchFailureReason.NO_RUNNER_SPECIFIED)
             } else {
                 val huntersToUse = currentState.hunters.ifEmpty {
                     // if empty, just use all the online players
@@ -124,9 +81,9 @@ class MatchEngine(
     }
 
     // called from `/ph start`, force match to immediately start
-    fun forceStart(onlinePlayers: List<MatchPlayer>): MatchResult =
+    override fun forceStart(onlinePlayers: List<MatchPlayer>): MatchResult =
         when (val currentState = currentStatus) {
-            is MatchState.Active -> MatchResult.Err(FailureReason.ALREADY_STARTED)
+            is MatchState.Active -> MatchResult.Err(MatchFailureReason.ALREADY_STARTED)
             is MatchState.Primed -> {
                 startMatch(currentState.runner, currentState.hunters)
                 MatchResult.Ok()
@@ -141,13 +98,13 @@ class MatchEngine(
                     startMatch(runnerToUse, huntersToUse)
                     MatchResult.Ok()
                 } else {
-                    MatchResult.Err(FailureReason.NO_RUNNER_SPECIFIED)
+                    MatchResult.Err(MatchFailureReason.NO_RUNNER_SPECIFIED)
                 }
             }
         }
 
     // called from `/ph stop`, force match to immediately stop
-    fun forceEnd(): MatchResult =
+    override fun forceEnd(): MatchResult =
         when (val currentState = currentStatus) {
             // prime doesn't do anything put change match status, so just swap it back
             is MatchState.Primed -> {
@@ -161,14 +118,15 @@ class MatchEngine(
             }
 
             // IDLE and ENDED statuses are well... not started
-            else -> MatchResult.Err(FailureReason.NOT_RUNNING)
+            else -> MatchResult.Err(MatchFailureReason.NOT_RUNNING)
         }
 
     private fun startMatch(activeRunner: MatchPlayer, activeHunters: Set<MatchPlayer>) {
         val startTime = Clock.System.now()
-        currentStatus = MatchState.Active(activeRunner, activeHunters, startTime)
+        val status = MatchState.Active(activeRunner, activeHunters, startTime)
+        currentStatus = status
 
-        outbound.post(MatchEvent.MatchStart(activeRunner, activeHunters.toSet()))
+        outbound.post(MatchEvent.MatchStart(status))
         outbound.post(MatchEvent.BroadcastNotification("Match started"))
 
         // maybe add a delay later
@@ -227,8 +185,8 @@ class MatchEngine(
     // prevent mutation while game is already active
     private fun guardMutation(block: (MatchState.Idle) -> MatchResult): MatchResult {
         return when (val currentState = currentStatus) {
-            is MatchState.Primed -> MatchResult.Err(FailureReason.ALREADY_PRIMED)
-            is MatchState.Active -> MatchResult.Err(FailureReason.ALREADY_STARTED)
+            is MatchState.Primed -> MatchResult.Err(MatchFailureReason.ALREADY_PRIMED)
+            is MatchState.Active -> MatchResult.Err(MatchFailureReason.ALREADY_STARTED)
             is MatchState.Finished -> block(MatchState.Idle(currentState.runner, currentState.hunters))
             is MatchState.Idle -> block(currentState)
         }
@@ -237,8 +195,8 @@ class MatchEngine(
     fun setRunner(player: MatchPlayer) = guardMutation { idleState ->
         // success: overriding existing runner / no runner
         // failure: candidate already runner / hunter
-        if (idleState.runner isReally player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_ALREADY_RUNNER)
-        if (idleState.hunters reallyContains player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_ALREADY_HUNTER)
+        if (idleState.runner isReally player) return@guardMutation MatchResult.Err(MatchFailureReason.PLAYER_ALREADY_RUNNER)
+        if (idleState.hunters reallyContains player) return@guardMutation MatchResult.Err(MatchFailureReason.PLAYER_ALREADY_HUNTER)
 
         currentStatus = idleState.copy(runner = player)
         MatchResult.Ok("Set ${player.name} as the runner")
@@ -247,7 +205,7 @@ class MatchEngine(
     fun removeRunner(player: MatchPlayer) = guardMutation { idleState ->
         // success: removing current runner
         // failure: candidate not runner
-        if (idleState.runner isNotReally player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_NOT_IN_GROUP)
+        if (idleState.runner isNotReally player) return@guardMutation MatchResult.Err(MatchFailureReason.PLAYER_NOT_IN_GROUP)
 
         currentStatus = idleState.copy(runner = null)
         MatchResult.Ok("Removed ${player.name} as the runner")
@@ -262,7 +220,7 @@ class MatchEngine(
     fun addHunter(player: MatchPlayer) = guardMutation { idleState ->
         // success: adding candidate hunter
         // failure: candidate already hunter
-        if (idleState.runner isReally player) return@guardMutation MatchResult.Err(FailureReason.PLAYER_ALREADY_HUNTER)
+        if (idleState.runner isReally player) return@guardMutation MatchResult.Err(MatchFailureReason.PLAYER_ALREADY_HUNTER)
 
         currentStatus = idleState.copy(hunters = idleState.hunters + player)
         MatchResult.Ok("Added ${player.name} as a hunter")
@@ -271,7 +229,7 @@ class MatchEngine(
     fun removeHunter(player: MatchPlayer): MatchResult = guardMutation { idleState ->
         // success: removing candidate hunter
         // failure: candidate not a hunter
-        if (!(idleState.hunters reallyContains player)) return@guardMutation MatchResult.Err(FailureReason.PLAYER_NOT_IN_GROUP)
+        if (!(idleState.hunters reallyContains player)) return@guardMutation MatchResult.Err(MatchFailureReason.PLAYER_NOT_IN_GROUP)
 
         currentStatus = idleState.copy(hunters = idleState.hunters - player)
         MatchResult.Ok("Removed ${player.name} as a hunter")

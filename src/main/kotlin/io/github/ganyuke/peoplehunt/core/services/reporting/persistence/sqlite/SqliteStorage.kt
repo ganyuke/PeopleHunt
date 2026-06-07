@@ -1,9 +1,8 @@
 package io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite
 
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportStorage
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportStorage
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.FrameBatch
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.MatchOpenSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -98,7 +97,7 @@ class SqliteStorage(
     override suspend fun finalizeMatch(
         matchId: Uuid,
         endedAt: Instant,
-        outcome: MatchEngine.MatchOutcome,
+        outcome: MatchOutcome,
         durationTicks: Int,
     ) = withContext(Dispatchers.IO) {
         val conn = connectionFor(matchId)

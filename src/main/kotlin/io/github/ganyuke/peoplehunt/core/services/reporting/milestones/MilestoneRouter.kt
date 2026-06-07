@@ -6,7 +6,7 @@ import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.core.events.models.KillCause
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
-import io.github.ganyuke.peoplehunt.core.ports.LoggerPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.LoggerPort
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.MilestoneTracker
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 import io.github.ganyuke.peoplehunt.core.utils.isReally

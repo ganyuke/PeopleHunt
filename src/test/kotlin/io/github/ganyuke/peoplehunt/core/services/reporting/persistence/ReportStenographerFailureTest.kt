@@ -1,7 +1,8 @@
 package io.github.ganyuke.peoplehunt.core.services.reporting.persistence
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
 import io.github.ganyuke.peoplehunt.core.testutil.player
 import io.github.ganyuke.peoplehunt.core.testutil.playerDied
 import io.github.ganyuke.peoplehunt.core.testutil.reportStenographerFixture
@@ -85,8 +86,8 @@ class ReportStenographerFailureTest {
     fixture.storage.failOpen = false
     fixture.stenographer.onMatchEvent(
       MatchEvent.MatchEnd(
-        MatchEngine.MatchState.Finished(
-          runner, emptySet(), Clock.System.now(), Clock.System.now(), MatchEngine.MatchOutcome.HUNTER_VICTORY,
+        MatchState.Finished(
+          runner, emptySet(), Clock.System.now(), Clock.System.now(), MatchOutcome.HUNTER_VICTORY,
         ),
       ),
     )
@@ -107,8 +108,8 @@ class ReportStenographerFailureTest {
     fixture.storage.failFinalize = true
     fixture.stenographer.onMatchEvent(
       MatchEvent.MatchEnd(
-        MatchEngine.MatchState.Finished(
-          runner, emptySet(), Clock.System.now(), Clock.System.now(), MatchEngine.MatchOutcome.INCONCLUSIVE,
+        MatchState.Finished(
+          runner, emptySet(), Clock.System.now(), Clock.System.now(), MatchOutcome.INCONCLUSIVE,
         ),
       ),
     )

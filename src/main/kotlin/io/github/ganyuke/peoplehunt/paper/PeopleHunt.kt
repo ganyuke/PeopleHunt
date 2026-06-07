@@ -14,8 +14,7 @@ import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.S
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.WebReportSerializer
 import io.github.ganyuke.peoplehunt.paper.adapters.PaperLoggerAdapter
 import io.github.ganyuke.peoplehunt.paper.adapters.PaperSchedulerAdapter
-import io.github.ganyuke.peoplehunt.paper.command.match.MatchCommand
-import io.github.ganyuke.peoplehunt.paper.command.report.ReportCommand
+import io.github.ganyuke.peoplehunt.paper.command.PhCommand
 import io.github.ganyuke.peoplehunt.paper.events.BroadcastEventHandler
 import io.github.ganyuke.peoplehunt.paper.events.CompassEventHandler
 import io.github.ganyuke.peoplehunt.paper.listeners.*
@@ -158,11 +157,9 @@ class PeopleHunt : JavaPlugin() {
 
         val manager = this.lifecycleManager
         manager.registerEventHandler(LifecycleEvents.COMMANDS) { event ->
-            val commandRoot = MatchCommand.buildMatchCommand(
+            val commandRoot = PhCommand.buildMatchCommand(
                 matchEngine,
-                reportingEngine,
                 reportService,
-                schedulerAdapter,
                 loggerAdapter,
                 outbound,
             )
@@ -174,7 +171,6 @@ class PeopleHunt : JavaPlugin() {
         // tasks cancelled by MatchEngine.endMatch or server shutdown
         reportStenographer.shutdown()
         reportExportHandler.shutdown()
-        ReportCommand.shutdown()
         matchEngine.shutdown()
     }
 }

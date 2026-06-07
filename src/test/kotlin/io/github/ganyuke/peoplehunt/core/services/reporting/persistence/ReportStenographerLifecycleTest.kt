@@ -2,7 +2,8 @@ package io.github.ganyuke.peoplehunt.core.services.reporting.persistence
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.ReportJson
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.SqliteReportReader
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.SqliteStorage
@@ -53,8 +54,8 @@ class ReportStenographerLifecycleTest {
     val endedAt = Clock.System.now()
     stenographer.onMatchEvent(
       MatchEvent.MatchEnd(
-        MatchEngine.MatchState.Finished(
-          runner, emptySet(), endedAt, endedAt, MatchEngine.MatchOutcome.RUNNER_VICTORY,
+        MatchState.Finished(
+          runner, emptySet(), endedAt, endedAt, MatchOutcome.RUNNER_VICTORY,
         ),
       ),
     )
@@ -69,7 +70,7 @@ class ReportStenographerLifecycleTest {
     assertEquals(1, report.eventFrames.size)
     assertEquals(1, report.projectileFrames.size)
     assertEquals(1, report.snapshotFrames.size)
-    assertEquals(MatchEngine.MatchOutcome.RUNNER_VICTORY, report.outcome)
+    assertEquals(MatchOutcome.RUNNER_VICTORY, report.outcome)
     stenographer.shutdown()
   }
 

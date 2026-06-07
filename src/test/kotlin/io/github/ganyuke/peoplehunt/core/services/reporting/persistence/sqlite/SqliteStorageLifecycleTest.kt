@@ -1,9 +1,9 @@
 package io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite
 
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.EventFrame
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.FrameBatch
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.MatchOpenSession
 import io.github.ganyuke.peoplehunt.core.testutil.player
 import java.nio.file.Files
 import java.sql.DriverManager
@@ -65,9 +65,9 @@ class SqliteStorageLifecycleTest {
       }
     }
 
-    storage.finalizeMatch(matchId, startedAt, io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.MatchOutcome.RUNNER_VICTORY, 5)
+    storage.finalizeMatch(matchId, startedAt, MatchOutcome.RUNNER_VICTORY, 5)
     val report = SqliteReportReader.read(storage.dbPathFor(matchId), ReportJson.instance)
     assertEquals(1, report.eventFrames.size)
-    assertEquals(io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.MatchOutcome.RUNNER_VICTORY, report.outcome)
+    assertEquals(MatchOutcome.RUNNER_VICTORY, report.outcome)
   }
 }

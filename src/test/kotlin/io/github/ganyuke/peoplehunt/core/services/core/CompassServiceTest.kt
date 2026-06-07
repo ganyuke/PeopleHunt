@@ -2,10 +2,13 @@ package io.github.ganyuke.peoplehunt.core.services.core
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
 import io.github.ganyuke.peoplehunt.core.testutil.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 class CompassServiceTest {
@@ -73,12 +76,12 @@ class CompassServiceTest {
         service.onMatchEvent(MatchEvent.MatchStart(runner, emptySet()))
         service.onReportableEvent(playerMoved(runner, pos(0, 0, 0, world)))
         service.onMatchEvent(MatchEvent.MatchEnd(
-            MatchEngine.MatchState.Finished(
+            MatchState.Finished(
                 runner,
                 emptySet(),
-                kotlin.time.Clock.System.now(),
-                kotlin.time.Clock.System.now(),
-                MatchEngine.MatchOutcome.INCONCLUSIVE,
+                Clock.System.now(),
+                Clock.System.now(),
+                MatchOutcome.INCONCLUSIVE,
             ),
         ))
         service.onMatchEvent(MatchEvent.CompassTick)

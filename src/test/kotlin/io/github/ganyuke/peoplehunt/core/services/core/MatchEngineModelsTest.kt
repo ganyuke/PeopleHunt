@@ -1,5 +1,9 @@
 package io.github.ganyuke.peoplehunt.core.services.core
 
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchFailureReason
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchResult
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
 import io.github.ganyuke.peoplehunt.core.testutil.player
 import kotlin.test.*
 import kotlin.time.Clock
@@ -10,33 +14,33 @@ class MatchEngineModelsTest {
         val runner = player("runner")
         val hunter = player("hunter")
         val now = Clock.System.now()
-        val idle = MatchEngine.MatchState.Idle(runner, setOf(hunter))
-        val primed = MatchEngine.MatchState.Primed(runner, setOf(hunter), now)
-        val active = MatchEngine.MatchState.Active(runner, setOf(hunter), now)
-        val finished = MatchEngine.MatchState.Finished(
+        val idle = MatchState.Idle(runner, setOf(hunter))
+        val primed = MatchState.Primed(runner, setOf(hunter), now)
+        val active = MatchState.Active(runner, setOf(hunter), now)
+        val finished = MatchState.Finished(
             runner,
             setOf(hunter),
             now,
             now,
-            MatchEngine.MatchOutcome.HUNTER_VICTORY,
+            MatchOutcome.HUNTER_VICTORY,
         )
         assertEquals(runner, idle.runner)
         assertEquals(now, primed.primedAt)
         assertEquals(now, active.startedAt)
-        assertEquals(MatchEngine.MatchOutcome.HUNTER_VICTORY, finished.outcome)
+        assertEquals(MatchOutcome.HUNTER_VICTORY, finished.outcome)
         assertTrue(idle != active)
     }
 
     @Test
     fun matchResultAndFailureReasons_areExhaustive() {
-        assertIs<MatchEngine.MatchResult.Ok>(MatchEngine.MatchResult.Ok())
-        assertIs<MatchEngine.MatchResult.Ok>(MatchEngine.MatchResult.Ok("ok"))
+        assertIs<MatchResult.Ok>(MatchResult.Ok())
+        assertIs<MatchResult.Ok>(MatchResult.Ok("ok"))
         assertEquals(
-            MatchEngine.FailureReason.NOT_RUNNING,
-            MatchEngine.MatchResult.Err(MatchEngine.FailureReason.NOT_RUNNING).reason,
+            MatchFailureReason.NOT_RUNNING,
+            MatchResult.Err(MatchFailureReason.NOT_RUNNING).reason,
         )
-        MatchEngine.FailureReason.entries.forEach { assertEquals(it, it) }
-        MatchEngine.MatchOutcome.entries.forEach { assertEquals(it, it) }
+        MatchFailureReason.entries.forEach { assertEquals(it, it) }
+        MatchOutcome.entries.forEach { assertEquals(it, it) }
     }
 
     @Test

@@ -1,7 +1,7 @@
 package io.github.ganyuke.peoplehunt.paper.adapters
 
-import io.github.ganyuke.peoplehunt.core.ports.SchedulerPort
-import io.github.ganyuke.peoplehunt.core.ports.TaskHandle
+import io.github.ganyuke.peoplehunt.core.ports.outbound.SchedulerPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.TaskHandle
 import org.bukkit.plugin.java.JavaPlugin
 
 class PaperSchedulerAdapter(private val plugin: JavaPlugin) : SchedulerPort {

@@ -2,12 +2,14 @@ package io.github.ganyuke.peoplehunt.core.events
 
 import io.github.ganyuke.peoplehunt.core.events.models.KillCause
 import io.github.ganyuke.peoplehunt.core.events.models.Pos4
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 import io.github.ganyuke.peoplehunt.core.testutil.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 class CoreEventsTest {
@@ -15,12 +17,12 @@ class CoreEventsTest {
     fun matchEventVariants_holdData() {
         val runner = player("runner")
         val hunters = setOf(player("h1"))
-        val finished = MatchEngine.MatchState.Finished(
+        val finished = MatchState.Finished(
             runner,
             hunters,
-            kotlin.time.Clock.System.now(),
-            kotlin.time.Clock.System.now(),
-            MatchEngine.MatchOutcome.RUNNER_VICTORY,
+            Clock.System.now(),
+            Clock.System.now(),
+            MatchOutcome.RUNNER_VICTORY,
         )
         val world = Uuid.random()
         val p = pos(1, 2, 3, world)

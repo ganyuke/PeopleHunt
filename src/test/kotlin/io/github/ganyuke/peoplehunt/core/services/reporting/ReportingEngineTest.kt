@@ -4,7 +4,8 @@ import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.core.events.models.KillCause
-import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
 import io.github.ganyuke.peoplehunt.core.testutil.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -37,7 +38,7 @@ class ReportingEngineTest {
         fixture.engine.onMatchEvent(MatchEvent.MatchStart(runner, setOf(hunter)))
         fixture.engine.onMatchEvent(
             MatchEvent.MatchEnd(
-                MatchEngine.MatchState.Finished(runner, setOf(hunter), Clock.System.now(), Clock.System.now(), MatchEngine.MatchOutcome.INCONCLUSIVE),
+                MatchState.Finished(runner, setOf(hunter), Clock.System.now(), Clock.System.now(), MatchOutcome.INCONCLUSIVE),
             ),
         )
         // After match end, events are not tracked

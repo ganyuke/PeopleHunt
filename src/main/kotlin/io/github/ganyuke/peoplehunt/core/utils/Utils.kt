@@ -22,5 +22,5 @@ data class PhConfig(
     val globalCompass: Boolean,
     val matchMinutesInterval: Duration,
     val compassTickInterval: Long,
-    val reportFlushInterval: Duration,
+    val flushMinutesInterval: Duration,
 )

@@ -1,5 +1,8 @@
 package io.github.ganyuke.peoplehunt.core.ports
 
+import io.github.ganyuke.peoplehunt.core.ports.outbound.LoggerPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.SchedulerPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.TaskHandle
 import io.github.ganyuke.peoplehunt.core.testutil.FakeScheduler
 import kotlin.test.Test
 import kotlin.test.assertEquals

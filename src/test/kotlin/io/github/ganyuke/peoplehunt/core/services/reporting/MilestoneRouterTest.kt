@@ -5,11 +5,14 @@ import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.core.events.models.KillCause
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
 import io.github.ganyuke.peoplehunt.core.services.reporting.milestones.SpeedrunMilestone
 import io.github.ganyuke.peoplehunt.core.testutil.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 class MilestoneRouterTest {
   private fun fixture(): Triple<MilestoneRouter, ReportableEventBus, FakeLogger> {
@@ -39,9 +42,9 @@ class MilestoneRouterTest {
     val posted = mutableListOf<ReportableEvent>()
     bus.register { posted += it }
     router.onMatchEvent(MatchEvent.MatchEnd(
-      io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.MatchState.Finished(
-        runner, emptySet(), kotlin.time.Clock.System.now(), kotlin.time.Clock.System.now(),
-        io.github.ganyuke.peoplehunt.core.services.core.MatchEngine.MatchOutcome.INCONCLUSIVE,
+      MatchState.Finished(
+        runner, emptySet(), Clock.System.now(), Clock.System.now(),
+        MatchOutcome.INCONCLUSIVE,
       ),
     ))
     router.onReportableEvent(playerEnteredStructure(runner, "minecraft:fortress"))
