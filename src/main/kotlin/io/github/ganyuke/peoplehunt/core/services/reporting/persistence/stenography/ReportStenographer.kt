@@ -20,6 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -148,18 +149,18 @@ class ReportStenographer(
                     ReportOpResult.Err(ReportOpFailure.DB_FAILED_TO_OPEN, dbErr)
                 }
 
-                when (val current = reportState) {
+                when (val state = reportState) {
                     is Setup.Initializing -> {
                         reportState = if (dbErr == null) {
-                            Running.Open(current.session, startAutoflushJob(session.startedAt))
+                            Running.Open(state.session, startAutoflushJob(session.startedAt))
                         } else {
-                            Setup.InitializingFailed(current.session)
+                            Setup.InitializingFailed(state.session)
                         }
                         callback?.invoke(result)
                     }
 
                     is Teardown.FinalizingPending -> {
-                        transitionToFinalizing(current.session, current.metadata)
+                        transitionToFinalizing(state.session, state.metadata)
                         callback?.invoke(result)
                     }
 
@@ -312,29 +313,35 @@ class ReportStenographer(
     }
 
     /**
+     * Helper to hide this ugly when because copy() doesn't work on the interface directly
+     */
+    private fun ReportState.replaceSession(newSession: ReportSession): ReportState = when (this) {
+        is Setup.Initializing -> copy(session = newSession)
+        is Setup.InitializingFailed -> copy(session = newSession)
+        is Running.Open -> copy(session = newSession)
+        is Running.Writing -> copy(session = newSession)
+
+        // everything below should not be possible
+        is Teardown.FinalizingPending -> copy(session = newSession)
+        is Teardown.Finalizing -> copy(session = newSession)
+        is Teardown.FinalizingFailed -> copy(session = newSession)
+
+        else -> this // smart-cast doesn't realize that Closed was ruled out so need to else (or `is Closed`)
+    }
+
+    /**
      * Helper function to hide the giant when brace for appending a new event
      * since copy doesn't work on interfaces.
      */
     private fun ReportState.appendEvent(newEvent: ReportableEvent): ReportState {
         if (this !is WithSession) return this
-
         val newSession = this.session.withEvent(newEvent)
-
-        return when (this) {
-            is Setup.Initializing -> copy(session = newSession)
-            is Setup.InitializingFailed -> copy(session = newSession)
-            is Running.Open -> copy(session = newSession)
-            is Running.Writing -> copy(session = newSession)
-
-            // everything below should not be possible
-            is Teardown.FinalizingPending -> copy(session = newSession)
-            is Teardown.Finalizing -> copy(session = newSession)
-            is Teardown.FinalizingFailed -> copy(session = newSession)
-
-            else -> this // smart-cast doesn't realize that Closed was ruled out so need to else (or `is Closed`)
-        }
+        return this.replaceSession(newSession)
     }
 
+    /**
+     * Resolve the block reason from the outside
+     */
     override val blockReason: ReportSessionBlockReason?
         get() = when (reportState) {
             Closed -> null
@@ -343,39 +350,11 @@ class ReportStenographer(
         }
 
     /**
-     * Flush operation drains
+     * Flush operation drains events from the reporting session and persists them on disk.
+     * Supports providing a callback to provide feedback asynchronously on the status
+     * of an operation.
      */
     override fun flush(callback: (ReportOpResult) -> Unit) {
-        // callback handles how feedback is done
-        // todo: implement flush interval task that calls this w/ operator and logger feedback
-        // todo: implement manual flush task that calls this w/ sender and logger feedback
-        // todo: implement match end flush task that calls this w/ operator and logger feedback
-
-        /* todo: manual flush has these branches:
-        *       (1) if reportState is Closed, report error: no data to flush
-        *       (2) if reportState is InitializedFailed: attempt to create DB then flush stored data
-        *       (3) if reportState is FinalizeFailed: re-attempt finalized flush to DB
-        *       (4) if reportState is Active: attempt to flush
-        *       (5) if reportState is either Initializing or Finalizing: block writes; report is doing DB work
-        *
-        *   todo: all flushable manual branches (2, 3, 4) have two branches:
-        *       (a) if DB I/O already in progress: reject and notify to try again
-        *       (b) if DB I/O not in progress: (do extra DB ops if needed and) flush current data to DB
-        *
-        *   todo: DB I/O is detected by checking if the TaskHandle is in use by some task
-        *
-        *   todo: Autoflush behavior notes:
-        *       - Autoflush is forced-disabled after reportState is InitializedFailed and naturally disabled by Finalizing.
-        *         By virtue of order, that means that it will not be active in Closed or FinalizeFailed.
-        *       - Autoflush is re-enabled (at the same anchor: match start, not at re-enable time) when transitioning from
-        *         InitializedFailed -> Active and from Initializing -> Active
-        *       - Autoflush will be skipped if the interval hits while it is already flushing data to DB
-        *
-        *   todo: match end finalization call MUST NOT be lost. if DB I/O in progress, it must be able to finalize
-        *    the report. so it should immediately transition Active->Finalizing and wait until the DB is free
-        *    without blocking the main thread.
-        */
-
         /**
          *  Autoflush no-ops itself if it happens on any state but [Running.Open], so we should be okay with
          *  assuming that this flush() is called manually by an operator.
@@ -392,27 +371,51 @@ class ReportStenographer(
                 }
 
                 val (drainedSession, batch) = state.session.drain()
-                reportState = state.copy(session = drainedSession)
 
-                scope.launch {
+                val ioJob = scope.launch {
                     val flushError = runCatching {
                         storage.appendFlush(drainedSession.matchId, batch, Clock.System.now())
                     }.exceptionOrNull()
 
                     scheduler.runOnMainThread {
-                        if (flushError != null) {
+                        val state = reportState
+
+                        if (state !is WithSession) {
+                            callback(ReportOpResult.Err(ReportOpFailure.INVALID_STATE))
+                            return@runOnMainThread
+                        }
+
+                        val newSession = if (flushError != null) {
                             callback(ReportOpResult.Err(ReportOpFailure.WRITE_FAILED, flushError))
+                            state.session.restoreBatch(batch)
                         } else {
                             val totalRecords = batch.projectiles.size + batch.snapshots.size + batch.events.size
                             callback(ReportOpResult.Ok("Successfully flushed $totalRecords records to disk."))
+                            state.session
+                        }
+
+                        /**
+                         * these two states are the only states that a Writing state should be able to transition to
+                         * FinalizingPending + dbErr branch will warn the sender that write failed, but Finalizing
+                         * will retry it silently. Might be a UX issue.
+                         */
+                        when (state) {
+                            is Teardown.FinalizingPending -> transitionToFinalizing(newSession, state.metadata)
+                            is Running.Writing -> { reportState = Running.Open(newSession, state.autoflushJob) }
                         }
                     }
                 }
+
+                reportState = Running.Writing(
+                    session = drainedSession,
+                    autoflushJob = state.autoflushJob,
+                    ioJob = ioJob
+                )
             }
             // (somewhat) happy path #2 - failed DB open operation
-            is Setup.InitializingFailed -> transitionToInitializing(state.session)
+            is Setup.InitializingFailed -> transitionToInitializing(state.session, callback)
             // (somewhat) happy path #3 - failed report finalization operation
-            is Teardown.FinalizingFailed -> transitionToFinalizing(state.session, state.metadata)
+            is Teardown.FinalizingFailed -> transitionToFinalizing(state.session, state.metadata, callback)
         }
     }
 
@@ -431,27 +434,48 @@ class ReportStenographer(
     }
 
     /**
+     * Helper for logging the shutdown() awaits
+     */
+    private suspend fun joinWithTimeout(job: Job, timeout: Duration, label: String): Boolean {
+        val result = withTimeoutOrNull(timeout) {
+            job.join()
+            true
+        }
+        return if (result == null) {
+            logger.warn("$label timed out before shutdown. Data may have been lost.")
+            false
+        } else {
+            logger.info("$label settled successfully.")
+            true
+        }
+    }
+
+    /**
      * Graceful shutdown for plugin disable.
      */
     fun shutdown() {
+        val shutdownTimeout = 1.minutes // amount of time that I am willing to wait before just killing write
         val state = reportState
         if (state is Running) state.autoflushJob?.cancel()
-        if (state is WithJob) {
-            val result = runBlocking {
-                withTimeoutOrNull(1.minutes) {
-                    state.ioJob.join()
-                    true
-                }
-            }
 
-            if (result == null) {
-                logger.warn("Report operation failed to save to disk: write timed out before shutdown")
-            } else {
-                logger.info("Successfully settled remaining report operations to disk.")
+        if (state is WithJob) {
+            runBlocking {
+                joinWithTimeout(state.ioJob, shutdownTimeout, "Report write operation")
+
+                if (state is Teardown.FinalizingPending) {
+                    transitionToFinalizing(state.session, state.metadata)
+                    val postPendState = reportState
+                    if (postPendState !is Teardown.Finalizing) {
+                        logger.error("Failed to walk FinalizingPending through shutdown. Data was lost.")
+                    } else {
+                        joinWithTimeout(postPendState.ioJob, shutdownTimeout, "Report finalization")
+                    }
+                }
             }
         }
 
         reportState = Closed
+        scope.cancel()
     }
 
     /**
@@ -487,10 +511,14 @@ class ReportStenographer(
      * Destinations: FinalizingPending (for I/O states), Finalizing
      */
     private fun closeSession(event: MatchEvent.MatchEnd) {
-        when (val state = reportState) {
+        val state = reportState
+
+        if (state is Running) state.autoflushJob?.cancel()
+
+        when (state) {
             Closed -> {}
-            is Setup.InitializingFailed, is Running.Open -> transitionToFinalizing(event)
-            is Setup.Initializing, is Running.Writing -> {
+            is Running.Open, is Setup.InitializingFailed -> transitionToFinalizing(event)
+            is Running.Writing, is Setup.Initializing -> {
                 val match = event.result
                 val session = state.session
 
