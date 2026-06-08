@@ -44,11 +44,27 @@ data class ReportSession(
         }
     }
 
+    /**
+     * Dump all the lists from this session into a [FrameBatch]
+     * and return an emptied copy of this session.
+     */
     fun drain(): Pair<ReportSession, FrameBatch> {
         return copy(
             projectiles = emptyList(),
             snapshots = emptyList(),
             events = emptyList()
         ) to FrameBatch(projectiles, snapshots, events)
+    }
+
+    /**
+     * Restore the lists drained into a [FrameBatch] back
+     * into a [ReportSession].
+     */
+    fun restoreBatch(batch: FrameBatch): ReportSession {
+        return copy(
+            projectiles = batch.projectiles + this.projectiles,
+            snapshots = batch.snapshots + this.snapshots,
+            events = batch.events + this.events
+        )
     }
 }

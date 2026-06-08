@@ -3,7 +3,7 @@ package io.github.ganyuke.peoplehunt.core.testutil
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.reporting.ReportingEngine
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportStenographer
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.stenography.ReportStenographer
 import io.github.ganyuke.peoplehunt.core.utils.PhConfig
 
 data class MatchEngineFixture(

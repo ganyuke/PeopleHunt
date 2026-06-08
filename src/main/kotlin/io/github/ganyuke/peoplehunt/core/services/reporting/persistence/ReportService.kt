@@ -4,6 +4,7 @@ import io.github.ganyuke.peoplehunt.core.ports.inbound.ReportPort
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.WebReportSerializer
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.fromCompactString
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.toCompactString
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.stenography.ReportStenographer
 import java.nio.file.Path
 import kotlin.uuid.Uuid
 

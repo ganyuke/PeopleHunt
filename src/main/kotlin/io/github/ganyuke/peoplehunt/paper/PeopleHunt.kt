@@ -8,7 +8,7 @@ import io.github.ganyuke.peoplehunt.core.services.reporting.MilestoneRouter
 import io.github.ganyuke.peoplehunt.core.services.reporting.ReportingEngine
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportExportHandler
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportService
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportStenographer
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.stenography.ReportStenographer
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.ReportJson
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.SqliteStorage
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.WebReportSerializer

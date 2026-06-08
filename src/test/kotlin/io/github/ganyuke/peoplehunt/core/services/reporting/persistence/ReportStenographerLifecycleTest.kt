@@ -8,6 +8,7 @@ import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.R
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.SqliteReportReader
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.SqliteStorage
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.fromCompactString
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.stenography.ReportStenographer
 import io.github.ganyuke.peoplehunt.core.testutil.FakeLogger
 import io.github.ganyuke.peoplehunt.core.testutil.FakeScheduler
 import io.github.ganyuke.peoplehunt.core.testutil.player
@@ -26,6 +27,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlin.time.Duration
 
 class ReportStenographerLifecycleTest {
   @Test
@@ -36,11 +38,11 @@ class ReportStenographerLifecycleTest {
     val events = mutableListOf<MatchEvent>()
     bus.register { events += it }
     val stenographer = ReportStenographer(
-      bus,
-      FakeScheduler(),
-      FakeLogger(),
-      storage,
-      testPhConfig(reportFlushInterval = kotlin.time.Duration.ZERO),
+        bus,
+        FakeScheduler(),
+        FakeLogger(),
+        storage,
+        testPhConfig(reportFlushInterval = Duration.ZERO),
     )
 
     val runner = player("runner")
@@ -98,11 +100,11 @@ class ReportStenographerLifecycleTest {
     val dir = Files.createTempDirectory("ph-autoflush")
     val storage = SqliteStorage(dir, ReportJson.instance)
     val stenographer = ReportStenographer(
-      MatchEventBus(),
-      FakeScheduler(),
-      FakeLogger(),
-      storage,
-      testPhConfig(reportFlushInterval = 30.milliseconds),
+        MatchEventBus(),
+        FakeScheduler(),
+        FakeLogger(),
+        storage,
+        testPhConfig(reportFlushInterval = 30.milliseconds),
     )
     try {
       val runner = player("runner")

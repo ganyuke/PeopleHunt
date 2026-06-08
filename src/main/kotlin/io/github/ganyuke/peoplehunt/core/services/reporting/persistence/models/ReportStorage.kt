@@ -5,6 +5,7 @@ import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 interface ReportStorage {
+    val isOpen : Boolean
     suspend fun openMatch(session: MatchOpenSession)
     suspend fun appendFlush(matchId: Uuid, batch: FrameBatch, flushTime: Instant)
     suspend fun finalizeMatch(matchId: Uuid, endedAt: Instant, outcome: MatchOutcome, durationTicks: Int)
