@@ -3,7 +3,7 @@ package io.github.ganyuke.peoplehunt.paper.utils
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
 import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
-import io.github.ganyuke.peoplehunt.core.services.reporting.CombatStatsTracker
+import io.github.ganyuke.peoplehunt.core.services.reporting.highlighter.CombatStatsTracker
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.minimessage.MiniMessage
 import java.time.ZoneId

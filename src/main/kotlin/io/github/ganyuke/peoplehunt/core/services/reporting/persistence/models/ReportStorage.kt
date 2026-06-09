@@ -6,7 +6,8 @@ import kotlin.uuid.Uuid
 
 interface ReportStorage {
     val isOpen : Boolean
-    suspend fun openMatch(session: MatchOpenSession)
+    suspend fun readMatch(matchId: Uuid) : PersistedMatchReport
+    suspend fun openMatch(session: ReportSession)
     suspend fun appendFlush(matchId: Uuid, batch: FrameBatch, flushTime: Instant)
     suspend fun finalizeMatch(matchId: Uuid, endedAt: Instant, outcome: MatchOutcome, durationTicks: Int)
     fun closeActive()

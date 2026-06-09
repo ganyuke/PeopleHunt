@@ -35,8 +35,8 @@ class CompassService(private val outbound: MatchEventBus) {
     fun onMatchEvent(event: MatchEvent) =
         when (event) {
             is MatchEvent.MatchStart -> {
-                runnerUuid = event.runner.uuid
-                huntersUuid = event.hunters.map { it.uuid }.toSet()
+                runnerUuid = event.result.runner.uuid
+                huntersUuid = event.result.hunters.map { it.uuid }.toSet()
                 runnerPosInDim.clear()
                 runnerDim = null
             }

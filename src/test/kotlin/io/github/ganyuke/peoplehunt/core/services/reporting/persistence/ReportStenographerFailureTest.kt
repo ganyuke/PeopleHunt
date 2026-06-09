@@ -3,6 +3,8 @@ package io.github.ganyuke.peoplehunt.core.services.reporting.persistence
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
 import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportOpFailure
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportOpResult
 import io.github.ganyuke.peoplehunt.core.testutil.player
 import io.github.ganyuke.peoplehunt.core.testutil.playerDied
 import io.github.ganyuke.peoplehunt.core.testutil.reportStenographerFixture

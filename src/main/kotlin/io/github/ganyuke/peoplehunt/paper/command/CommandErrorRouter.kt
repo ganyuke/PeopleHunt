@@ -5,9 +5,9 @@ import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.ports.outbound.LoggerPort
 import io.github.ganyuke.peoplehunt.core.services.core.models.MatchFailureReason
 import io.github.ganyuke.peoplehunt.core.services.core.models.MatchResult
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportOpFailure
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportOpResult
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportSessionBlockReason
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportOpFailure
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportOpResult
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.stenography.ReportStartRejectReason
 import io.papermc.paper.command.brigadier.CommandSourceStack
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
@@ -19,13 +19,14 @@ object CommandErrorRouter {
             result.message?.let { message -> source.sender.sendMessage(Component.text(message, NamedTextColor.GREEN)) }
             1
         }
+
         is MatchResult.Err -> fail(source, CommandFailure.EngineReason(result.reason))
     }
 
     // guard against starting sessions with lingering report data
-    fun handle(source: CommandSourceStack, reason: ReportSessionBlockReason?): Int = when (reason) {
+    fun handle(source: CommandSourceStack, reason: ReportStartRejectReason?): Int = when (reason) {
         null -> 1
-        else -> fail(source, CommandFailure.ReportBlockReason(reason))
+        else -> fail(source, CommandFailure.ReportRejectReason(reason))
     }
 
     // errors for report subcommand issues
@@ -41,6 +42,7 @@ object CommandErrorRouter {
             source.sender.sendMessage(Component.text(msg, NamedTextColor.GREEN))
             1
         }
+
         is ReportOpResult.Err -> {
             val failure = CommandFailure.ReportOpReason(result.reason)
             val text = failureText(failure)
@@ -61,11 +63,12 @@ object CommandErrorRouter {
         object MustBePlayer : CommandFailure
         object NoLastMatch : CommandFailure
         data class EngineReason(val reason: MatchFailureReason) : CommandFailure
-        data class ReportBlockReason(val reason: ReportSessionBlockReason) : CommandFailure
+        data class ReportRejectReason(val reason: ReportStartRejectReason) : CommandFailure
         data class ReportOpReason(val reason: ReportOpFailure) : CommandFailure // Added
     }
 
-    fun fail(source: CommandSourceStack, reason: MatchFailureReason): Int = fail(source, CommandFailure.EngineReason(reason))
+    fun fail(source: CommandSourceStack, reason: MatchFailureReason): Int =
+        fail(source, CommandFailure.EngineReason(reason))
 
     fun fail(source: CommandSourceStack, reason: CommandFailure): Int {
         source.sender.sendMessage(Component.text(failureText(reason), NamedTextColor.RED))
@@ -88,12 +91,10 @@ object CommandErrorRouter {
             MatchFailureReason.PLAYER_NOT_IN_GROUP -> "Player is not a member of that group."
         }
 
-        is CommandFailure.ReportBlockReason -> when (failure.reason) {
-            ReportSessionBlockReason.SESSION_ALREADY_ACTIVE -> "A report session is already active."
-            ReportSessionBlockReason.DATABASE_OPEN_FAILED ->
-                "Report database failed to open. Run /ph report flush to try again."
-            ReportSessionBlockReason.FINALIZE_PENDING ->
-                "Report data from the last match was not saved. Run /ph report flush to try again or /ph report clear to discard the previous report data."
+        is CommandFailure.ReportRejectReason -> when (failure.reason) {
+            ReportStartRejectReason.SESSION_IN_PROGRESS -> "A report session is already active."
+            ReportStartRejectReason.LEFTOVER_DATA ->
+                "Report data from the last match was not saved to disk. Run /ph report flush to try again or /ph report discard to delete the last match's report data."
         }
 
         is CommandFailure.ReportOpReason -> when (failure.reason) { // Added
@@ -102,6 +103,10 @@ object CommandErrorRouter {
             ReportOpFailure.WRITE_FAILED -> "Report write failed. Holding data for future flush."
             ReportOpFailure.MATCH_NOT_FOUND -> "No report database found for that match."
             ReportOpFailure.EXPORT_FAILED -> "Report export failed. See server log for details."
+            ReportOpFailure.IO_IN_PROGRESS -> "Already writing data to disk. Try again later."
+            ReportOpFailure.DB_FAILED_TO_OPEN -> "Failed to open report file - report data will not be saved to disk! Run /ph report flush to try again."
+            ReportOpFailure.DB_FAILED_TO_FINALIZE -> "Failed to finalize report to disk! Run /ph report flush to try again."
+            ReportOpFailure.INVALID_STATE -> "Command was called from an invalid report state. Try again later."
         }
     }
 }

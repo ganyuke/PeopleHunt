@@ -1,8 +1,11 @@
 package io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite
 
 import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportStorage
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.FrameBatch
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.PersistedMatchReport
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportSession
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportStorage
+import io.github.ganyuke.peoplehunt.core.utils.toCompactString
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -18,6 +21,48 @@ class SqliteStorage(
 ) : ReportStorage {
     private var activeMatchId: Uuid? = null
     private var connection: Connection? = null
+
+    override val isOpen get() = connection != null
+
+    private val schemaDDL = listOf(
+        """
+        CREATE TABLE IF NOT EXISTS players (
+            uuid TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            roles TEXT NOT NULL
+        )
+        """.trimIndent(),
+        """
+        CREATE TABLE IF NOT EXISTS match_info (
+            id TEXT PRIMARY KEY,
+            started_at INTEGER NOT NULL,
+            ended_at INTEGER,
+            duration_ticks INTEGER,
+            outcome TEXT,
+            runner_uuid TEXT NOT NULL REFERENCES players(uuid)
+        )
+        """.trimIndent(),
+        """
+        CREATE TABLE IF NOT EXISTS flush_batches (
+            batch_seq INTEGER PRIMARY KEY AUTOINCREMENT,
+            flush_time INTEGER NOT NULL,
+            tick_min INTEGER NOT NULL,
+            tick_max INTEGER NOT NULL,
+            snapshot_count INTEGER NOT NULL,
+            projectile_count INTEGER NOT NULL,
+            event_count INTEGER NOT NULL,
+            snapshots BLOB,
+            projectiles BLOB,
+            events BLOB
+        )
+        """.trimIndent(),
+    )
+
+    override suspend fun readMatch(matchId: Uuid): PersistedMatchReport {
+        val dbPath = this.dbPathFor(matchId)
+        require(dbPath.toFile().exists()) { "No report database for match $matchId" }
+        return SqliteReportReader.read(dbPath, json)
+    }
 
     fun verifyStorage() {
         reportsDir.toFile().mkdirs()
@@ -52,7 +97,7 @@ class SqliteStorage(
         }
     }
 
-    override suspend fun openMatch(session: MatchOpenSession) = withContext(Dispatchers.IO) {
+    override suspend fun openMatch(session: ReportSession) = withContext(Dispatchers.IO) {
         closeActive()
         val conn = openConnection(dbPathFor(session.matchId))
         activeMatchId = session.matchId
@@ -122,13 +167,11 @@ class SqliteStorage(
     fun dbPathFor(matchId: Uuid): Path = reportsDir.resolve("${matchId.toCompactString()}.db")
 
     private fun connectionFor(matchId: Uuid): Connection {
-        val existing = connection
-        if (existing != null && activeMatchId == matchId) return existing
-        closeActive()
-        val conn = openConnection(dbPathFor(matchId))
-        activeMatchId = matchId
-        connection = conn
-        initializeSchema(conn)
+        val conn = connection
+        // connection is controlled entirely by the ReportStenographer. it will always be valid.
+        check(conn != null && activeMatchId == matchId) {
+            "No active connection for match $matchId"
+        }
         return conn
     }
 
@@ -145,11 +188,11 @@ class SqliteStorage(
 
     private fun initializeSchema(conn: Connection) {
         conn.createStatement().use { stmt ->
-            SqliteSchema.DDL.forEach { stmt.execute(it) }
+            schemaDDL.forEach { stmt.execute(it) }
         }
     }
 
-    private fun insertPlayers(conn: Connection, session: MatchOpenSession) {
+    private fun insertPlayers(conn: Connection, session: ReportSession) {
         conn.prepareStatement("INSERT OR REPLACE INTO players (uuid, name, roles) VALUES (?, ?, ?)").use { stmt ->
             fun insert(player: io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer, role: String) {
                 stmt.setString(1, player.uuid.toCompactString())
@@ -162,7 +205,7 @@ class SqliteStorage(
         }
     }
 
-    private fun insertMatchInfo(conn: Connection, session: MatchOpenSession) {
+    private fun insertMatchInfo(conn: Connection, session: ReportSession) {
         conn.prepareStatement(
             """
             INSERT OR REPLACE INTO match_info (id, started_at, ended_at, duration_ticks, outcome, runner_uuid)

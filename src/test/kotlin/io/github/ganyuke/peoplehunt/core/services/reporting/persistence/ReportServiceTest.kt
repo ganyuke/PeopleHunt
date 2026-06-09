@@ -3,8 +3,10 @@ package io.github.ganyuke.peoplehunt.core.services.reporting.persistence
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.ReportJson
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.SqliteStorage
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.WebReportSerializer
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.exporter.WebReportSerializer
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.toCompactString
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportOpFailure
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportOpResult
 import io.github.ganyuke.peoplehunt.core.testutil.player
 import io.github.ganyuke.peoplehunt.core.testutil.reportStenographerFixture
 import java.nio.file.Files
@@ -93,7 +95,7 @@ class ReportServiceTest {
   }
 
   @Test
-  fun clear_delegatesToStenographer() = runBlocking {
+  fun discard_delegatesToStenographer() = runBlocking {
     val dir = Files.createTempDirectory("ph-clear")
     val storage = SqliteStorage(dir, ReportJson.instance)
     val fixture = reportStenographerFixture()
@@ -105,7 +107,7 @@ class ReportServiceTest {
     fixture.stenographer.onMatchEvent(MatchEvent.MatchStart(player("runner"), emptySet()))
     delay(50)
 
-    val result = service.clear()
+    val result = service.discard()
     assertIs<ReportOpResult.Ok>(result)
     assertNull(service.blockReason())
   }

@@ -1,8 +1,8 @@
 package io.github.ganyuke.peoplehunt.core.ports.inbound
 
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
-import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
 import io.github.ganyuke.peoplehunt.core.services.core.models.MatchResult
+import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
 
 interface MatchPort {
     // /ph status [last] commands

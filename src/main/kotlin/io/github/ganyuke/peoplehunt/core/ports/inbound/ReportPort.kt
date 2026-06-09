@@ -1,13 +1,14 @@
 package io.github.ganyuke.peoplehunt.core.ports.inbound
 
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
-import io.github.ganyuke.peoplehunt.core.services.reporting.CombatStatsTracker
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportOpResult
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportSessionBlockReason
+import io.github.ganyuke.peoplehunt.core.services.reporting.highlighter.CombatStatsTracker
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportOpResult
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.stenography.ReportStartRejectReason
+import java.nio.file.Path
 import kotlin.uuid.Uuid
 
 interface StenographerPort {
-    val blockReason: ReportSessionBlockReason?
+    val blockReason: ReportStartRejectReason?
 
     fun flush(callback: (ReportOpResult) -> Unit)
     fun discard(): ReportOpResult
@@ -18,7 +19,7 @@ interface ReportEnginePort {
 }
 
 interface WebExporterPort {
-    fun export(matchId: Uuid, callback: (ReportOpResult) -> Unit)
+    fun export(matchId: Uuid, callback: (ReportOpResult, Path?) -> Unit)
     fun fetchMatchIdList(): List<Uuid>
 }
 

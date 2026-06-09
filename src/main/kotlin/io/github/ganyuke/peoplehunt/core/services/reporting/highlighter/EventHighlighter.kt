@@ -1,4 +1,4 @@
-package io.github.ganyuke.peoplehunt.core.services.reporting
+package io.github.ganyuke.peoplehunt.core.services.reporting.highlighter
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
@@ -11,7 +11,7 @@ import io.github.ganyuke.peoplehunt.core.ports.outbound.LoggerPort
 import io.github.ganyuke.peoplehunt.core.utils.isReally
 import io.github.ganyuke.peoplehunt.core.utils.reallyContains
 
-class ReportingEngine(private val logger: LoggerPort) {
+class EventHighlighter(private val logger: LoggerPort) {
     private val combatStatsTracker = CombatStatsTracker()
     private val structureVisitTracker = StructureVisitTracker()
 
@@ -24,8 +24,8 @@ class ReportingEngine(private val logger: LoggerPort) {
     fun onMatchEvent(event: MatchEvent) {
         when (event) {
             is MatchEvent.MatchStart -> {
-                currentRunner = event.runner
-                currentHunters = event.hunters
+                currentRunner = event.result.runner
+                currentHunters = event.result.hunters
                 combatStatsTracker.clear()
                 structureVisitTracker.clear()
             }

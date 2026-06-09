@@ -5,27 +5,10 @@ import io.github.ganyuke.peoplehunt.core.events.ReportableEvent
 import io.github.ganyuke.peoplehunt.core.ports.inbound.StenographerPort
 import io.github.ganyuke.peoplehunt.core.ports.outbound.LoggerPort
 import io.github.ganyuke.peoplehunt.core.ports.outbound.SchedulerPort
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportOpFailure
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportOpResult
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportSessionBlockReason
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.FinalizedMetadata
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportSession
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportStorage
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.stenography.ReportStenographer.ReportState.Closed
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.stenography.ReportStenographer.ReportState.Running
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.stenography.ReportStenographer.ReportState.Setup
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.stenography.ReportStenographer.ReportState.Teardown
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.*
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.stenography.ReportStenographer.ReportState.*
 import io.github.ganyuke.peoplehunt.core.utils.PhConfig
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.*
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -342,11 +325,11 @@ class ReportStenographer(
     /**
      * Resolve the block reason from the outside
      */
-    override val blockReason: ReportSessionBlockReason?
+    override val blockReason: ReportStartRejectReason?
         get() = when (reportState) {
             Closed -> null
-            is Teardown -> ReportSessionBlockReason.FINALIZE_PENDING
-            else -> ReportSessionBlockReason.SESSION_ALREADY_ACTIVE
+            is Teardown -> ReportStartRejectReason.LEFTOVER_DATA
+            else -> ReportStartRejectReason.SESSION_IN_PROGRESS
         }
 
     /**

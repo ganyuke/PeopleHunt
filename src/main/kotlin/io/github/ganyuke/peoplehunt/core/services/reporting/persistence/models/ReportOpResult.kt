@@ -1,4 +1,4 @@
-package io.github.ganyuke.peoplehunt.core.services.reporting.persistence
+package io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models
 
 sealed interface ReportOpResult {
     data class Ok(val message: String? = null) : ReportOpResult

@@ -2,11 +2,12 @@ package io.github.ganyuke.peoplehunt.core.services.reporting.persistence
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEvent
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.exporter.ReportExportHandler
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.EventFrame
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.FrameBatch
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.ReportJson
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.SqliteStorage
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.WebReportSerializer
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.exporter.WebReportSerializer
 import io.github.ganyuke.peoplehunt.core.testutil.FakeLogger
 import io.github.ganyuke.peoplehunt.core.testutil.FakeScheduler
 import io.github.ganyuke.peoplehunt.core.testutil.player

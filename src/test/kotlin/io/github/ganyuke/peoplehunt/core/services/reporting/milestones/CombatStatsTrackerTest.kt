@@ -1,7 +1,7 @@
 package io.github.ganyuke.peoplehunt.core.services.reporting.milestones
 
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
-import io.github.ganyuke.peoplehunt.core.services.reporting.CombatStatsTracker
+import io.github.ganyuke.peoplehunt.core.services.reporting.highlighter.CombatStatsTracker
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

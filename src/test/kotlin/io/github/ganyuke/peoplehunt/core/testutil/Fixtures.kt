@@ -2,7 +2,7 @@ package io.github.ganyuke.peoplehunt.core.testutil
 
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
-import io.github.ganyuke.peoplehunt.core.services.reporting.ReportingEngine
+import io.github.ganyuke.peoplehunt.core.services.reporting.highlighter.EventHighlighter
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.stenography.ReportStenographer
 import io.github.ganyuke.peoplehunt.core.utils.PhConfig
 
@@ -19,13 +19,13 @@ fun matchEngineFixture(
 ) = MatchEngineFixture(MatchEngine(scheduler, bus, config), scheduler, bus)
 
 data class ReportingEngineFixture(
-    val engine: ReportingEngine,
+    val engine: EventHighlighter,
     val logger: FakeLogger,
 )
 
 fun reportingEngineFixture(
     logger: FakeLogger = FakeLogger()
-) = ReportingEngineFixture(ReportingEngine(logger), logger)
+) = ReportingEngineFixture(EventHighlighter(logger), logger)
 
 data class ReportStenographerFixture(
     val stenographer: ReportStenographer,

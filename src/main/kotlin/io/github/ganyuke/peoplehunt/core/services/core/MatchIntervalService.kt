@@ -37,5 +37,6 @@ class MatchIntervalService(
         return object : TaskHandle { override fun cancel() { job.cancel() } }
     }
 
+    // called by MatchEngine, don't need to teardown manually in plugin main
     fun shutdown() = scope.cancel()
 }

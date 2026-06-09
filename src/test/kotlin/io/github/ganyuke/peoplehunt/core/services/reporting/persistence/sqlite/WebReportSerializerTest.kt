@@ -2,6 +2,7 @@ package io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite
 
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
 import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.exporter.WebReportSerializer
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.EventFrame
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.FrameBatch
 import io.github.ganyuke.peoplehunt.core.testutil.player

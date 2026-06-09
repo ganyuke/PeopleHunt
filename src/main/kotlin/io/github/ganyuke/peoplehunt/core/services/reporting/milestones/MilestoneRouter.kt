@@ -21,7 +21,7 @@ class MilestoneRouter(
     fun onMatchEvent(event: MatchEvent) {
         when (event) {
             is MatchEvent.MatchStart -> {
-                currentRunner = event.runner
+                currentRunner = event.result.runner
                 milestoneTracker.clear()
             }
             is MatchEvent.MatchEnd -> currentRunner = null

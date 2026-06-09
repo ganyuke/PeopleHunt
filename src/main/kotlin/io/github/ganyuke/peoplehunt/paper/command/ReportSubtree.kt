@@ -5,8 +5,8 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.SuggestionProvider
 import io.github.ganyuke.peoplehunt.core.events.MatchEventBus
-import io.github.ganyuke.peoplehunt.core.ports.outbound.LoggerPort
 import io.github.ganyuke.peoplehunt.core.ports.inbound.ReportPort
+import io.github.ganyuke.peoplehunt.core.ports.outbound.LoggerPort
 import io.github.ganyuke.peoplehunt.paper.command.CommandErrorRouter.handle
 import io.papermc.paper.command.brigadier.CommandSourceStack
 import io.papermc.paper.command.brigadier.Commands
@@ -37,7 +37,7 @@ object ReportSubtree {
 
         return Commands.literal("report")
             .then(Commands.literal("flush").executes { executeFlush(it, ctxWrapper) })
-            .then(Commands.literal("clear").executes { executeClear(it, ctxWrapper) })
+            .then(Commands.literal("discard").executes { executeDiscard(it, ctxWrapper) })
             .then(
                 Commands.literal("export").then(
                     Commands.argument("match_id", StringArgumentType.word())
@@ -48,14 +48,14 @@ object ReportSubtree {
     }
 
     private fun executeFlush(ctx: CommandContext<CommandSourceStack>, env: CommandContextWrapper): Int {
-        env.reportPort.manualFlush {
+        env.reportPort.flush {
             handle(ctx.source, it, env.logger, env.outbound)
         }
         return 1
     }
 
-    private fun executeClear(ctx: CommandContext<CommandSourceStack>, env: CommandContextWrapper): Int {
-        val result = env.reportPort.clear()
+    private fun executeDiscard(ctx: CommandContext<CommandSourceStack>, env: CommandContextWrapper): Int {
+        val result = env.reportPort.discard()
         return handle(ctx.source, result)
     }
 
@@ -70,8 +70,8 @@ object ReportSubtree {
             return 0
         }
 
-        env.reportPort.export(matchId) {
-            handle(ctx.source, it, env.logger, env.outbound)
+        env.reportPort.export(matchId) { r, _ ->
+            handle(ctx.source, r, env.logger, env.outbound)
         }
         return 1
     }

@@ -8,6 +8,8 @@ import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.R
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.SqliteReportReader
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.SqliteStorage
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.fromCompactString
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportOpFailure
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportOpResult
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.stenography.ReportStenographer
 import io.github.ganyuke.peoplehunt.core.testutil.FakeLogger
 import io.github.ganyuke.peoplehunt.core.testutil.FakeScheduler

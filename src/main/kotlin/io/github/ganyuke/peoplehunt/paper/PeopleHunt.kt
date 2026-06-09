@@ -5,13 +5,14 @@ import io.github.ganyuke.peoplehunt.core.events.ReportableEventBus
 import io.github.ganyuke.peoplehunt.core.services.core.CompassService
 import io.github.ganyuke.peoplehunt.core.services.core.MatchEngine
 import io.github.ganyuke.peoplehunt.core.services.reporting.MilestoneRouter
-import io.github.ganyuke.peoplehunt.core.services.reporting.ReportingEngine
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportExportHandler
+import io.github.ganyuke.peoplehunt.core.services.reporting.highlighter.EventHighlighter
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.ReportService
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.stenography.ReportStenographer
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.ReportJson
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.exporter.ReportExportHandler
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.exporter.WebReportSerializer
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.SqliteStorage
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.WebReportSerializer
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.stenography.ReportStenographer
+import io.github.ganyuke.peoplehunt.core.utils.InstantSerializer
+import io.github.ganyuke.peoplehunt.core.utils.UuidSerializer
 import io.github.ganyuke.peoplehunt.paper.adapters.PaperLoggerAdapter
 import io.github.ganyuke.peoplehunt.paper.adapters.PaperSchedulerAdapter
 import io.github.ganyuke.peoplehunt.paper.command.PhCommand
@@ -20,16 +21,29 @@ import io.github.ganyuke.peoplehunt.paper.events.CompassEventHandler
 import io.github.ganyuke.peoplehunt.paper.listeners.*
 import io.github.ganyuke.peoplehunt.paper.utils.ConfigLoader
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
 import org.bukkit.event.Listener
 import org.bukkit.plugin.java.JavaPlugin
+import kotlin.time.Instant
+import kotlin.uuid.Uuid
 
 class PeopleHunt : JavaPlugin() {
     private lateinit var matchEngine: MatchEngine
     private lateinit var reportStenographer: ReportStenographer
     private lateinit var reportExportHandler: ReportExportHandler
     private lateinit var reportService: ReportService
+    private lateinit var webReportSerializer: WebReportSerializer
+
     private val inbound = ReportableEventBus()
     private val outbound = MatchEventBus()
+
+    private val json: Json = Json {
+        serializersModule = SerializersModule {
+            contextual(Uuid::class, UuidSerializer)
+            contextual(Instant::class, InstantSerializer)
+        }
+    }
 
     private fun registerListeners(listeners: List<Listener>) {
         listeners.forEach { server.pluginManager.registerEvents(it, this) }
@@ -46,7 +60,7 @@ class PeopleHunt : JavaPlugin() {
     override fun onEnable() {
         saveDefaultConfig()
 
-        val phConfig = ConfigLoader.load(this.logger, this.config)
+        val phConfig = ConfigLoader.load(this.config)
         val loggerAdapter = PaperLoggerAdapter(this)
 
         val reportOutputFolder = dataFolder.resolve("reports").also {
@@ -58,7 +72,7 @@ class PeopleHunt : JavaPlugin() {
                 }
         }
 
-        val sqliteStorage = SqliteStorage(reportOutputFolder.toPath(), ReportJson.instance)
+        val sqliteStorage = SqliteStorage(reportOutputFolder.toPath(), json)
         try {
             sqliteStorage.verifyStorage()
         } catch (cause: Exception) {
@@ -67,17 +81,17 @@ class PeopleHunt : JavaPlugin() {
             return
         }
 
-        val webSerializer = WebReportSerializer(reportOutputFolder.toPath(), sqliteStorage, ReportJson.instance)
-
-        val compassEventHandler = CompassEventHandler(phConfig)
         val schedulerAdapter = PaperSchedulerAdapter(this)
+        val compassEventHandler = CompassEventHandler(phConfig)
+
+        val webSerializer = WebReportSerializer(reportOutputFolder.toPath(), sqliteStorage, json, schedulerAdapter)
 
         matchEngine = MatchEngine(schedulerAdapter, outbound, phConfig)
-        val reportingEngine = ReportingEngine(loggerAdapter)
+        val eventHighlighter = EventHighlighter(loggerAdapter)
 
         val milestoneRouter = MilestoneRouter(inbound, loggerAdapter)
 
-        val broadcastEventHandler = BroadcastEventHandler(reportingEngine)
+        val broadcastEventHandler = BroadcastEventHandler(eventHighlighter)
 
         val compassService = CompassService(outbound)
         val playerSnapshotPoller = PlayerSnapshotPoller(this, inbound)
@@ -90,14 +104,13 @@ class PeopleHunt : JavaPlugin() {
         val landmarkTracker = LandmarkTracker(inbound)
 
         reportStenographer = ReportStenographer(
-            outbound,
-            schedulerAdapter,
             loggerAdapter,
             sqliteStorage,
+            schedulerAdapter,
             phConfig,
         )
-        reportExportHandler = ReportExportHandler(webSerializer, schedulerAdapter, loggerAdapter, outbound)
-        reportService = ReportService(reportStenographer, webSerializer, reportOutputFolder.toPath())
+        reportExportHandler = ReportExportHandler(webSerializer, loggerAdapter, outbound)
+        reportService = ReportService(reportStenographer, webSerializer, reportOutputFolder.toPath(), eventHighlighter)
 
         // register listeners on bus that match and compass react to
         registerInbound(
@@ -105,7 +118,7 @@ class PeopleHunt : JavaPlugin() {
                 matchEngine::onEvent,
                 compassService::onReportableEvent,
                 endFightTracker::onReportableEvent,
-                reportingEngine::onReportableEvent,
+                eventHighlighter::onReportableEvent,
                 milestoneRouter::onReportableEvent,
                 reportStenographer::onReportableEvent,
             ),
@@ -123,7 +136,7 @@ class PeopleHunt : JavaPlugin() {
                 endFightTracker::onMatchEvent,
                 mobTracker::onMatchEvent,
                 landmarkTracker::onMatchEvent,
-                reportingEngine::onMatchEvent,
+                eventHighlighter::onMatchEvent,
                 milestoneRouter::onMatchEvent,
                 reportStenographer::onMatchEvent,
                 reportExportHandler::onMatchEvent,
@@ -169,8 +182,8 @@ class PeopleHunt : JavaPlugin() {
 
     override fun onDisable() {
         // tasks cancelled by MatchEngine.endMatch or server shutdown
-        reportStenographer.shutdown()
-        reportExportHandler.shutdown()
+        webReportSerializer.shutdown()
         matchEngine.shutdown()
+        reportStenographer.shutdown()
     }
 }

@@ -2,6 +2,7 @@ package io.github.ganyuke.peoplehunt.core.utils
 
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import kotlin.time.Duration
+import kotlin.uuid.Uuid
 
 infix fun MatchPlayer?.isReally(other: MatchPlayer?) = this?.uuid == other?.uuid
 
@@ -24,3 +25,7 @@ data class PhConfig(
     val compassTickInterval: Long,
     val flushMinutesInterval: Duration,
 )
+
+fun Uuid.toCompactString(): String = toString().replace("-", "")
+
+fun Uuid.Companion.fromCompactString(value: String): Uuid = parse(value)

@@ -1,16 +1,14 @@
-package io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite
+package io.github.ganyuke.peoplehunt.core.services.reporting.persistence.exporter
 
 import io.github.ganyuke.peoplehunt.core.events.ReportablePayload
-import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.EventFrame
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonArray
-import kotlinx.serialization.json.putJsonObject
+import io.github.ganyuke.peoplehunt.core.ports.outbound.SchedulerPort
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.PersistedMatchReport
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportOpFailure
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.ReportOpResult
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite.SqliteStorage
+import io.github.ganyuke.peoplehunt.core.utils.toCompactString
+import kotlinx.coroutines.*
+import kotlinx.serialization.json.*
 import kotlinx.serialization.serializer
 import java.nio.file.Path
 import kotlin.io.path.writeText
@@ -20,14 +18,30 @@ class WebReportSerializer(
     private val reportsDir: Path,
     private val storage: SqliteStorage,
     private val json: Json,
+    private val scheduler: SchedulerPort
 ) {
-    suspend fun export(matchId: Uuid): Path = withContext(Dispatchers.IO) {
-        val dbPath = storage.dbPathFor(matchId)
-        require(dbPath.toFile().exists()) { "No report database for match $matchId" }
-        val report = SqliteReportReader.read(dbPath, json)
-        val outPath = reportsDir.resolve("${matchId.toCompactString()}.json")
-        outPath.writeText(json.encodeToString(JsonElement.serializer(), buildDocument(report)))
-        outPath
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    fun export(matchId: Uuid, callback: (ReportOpResult, Path?) -> Unit) {
+        scope.launch(Dispatchers.IO) {
+            val result = runCatching {
+                // request persisted model from JSON
+                val report = storage.readMatch(matchId)
+
+                // export report data as a JSON file
+                val outPath = reportsDir.resolve("${matchId.toCompactString()}.json")
+                outPath.writeText(json.encodeToString(JsonElement.serializer(), buildDocument(report)))
+                outPath
+            }
+
+            scheduler.runOnMainThread {
+                if (result.isSuccess) {
+                    callback(ReportOpResult.Ok("Exported report successfully."), result.getOrNull())
+                } else {
+                    callback(ReportOpResult.Err(ReportOpFailure.EXPORT_FAILED, result.exceptionOrNull()), null)
+                }
+            }
+        }
     }
 
     private fun buildDocument(report: PersistedMatchReport): JsonElement {
@@ -75,4 +89,8 @@ class WebReportSerializer(
 
     private fun payloadTypeName(payload: ReportablePayload): String =
         json.serializersModule.serializer(payload::class.java).descriptor.serialName
+
+    fun shutdown() {
+        scope.cancel()
+    }
 }

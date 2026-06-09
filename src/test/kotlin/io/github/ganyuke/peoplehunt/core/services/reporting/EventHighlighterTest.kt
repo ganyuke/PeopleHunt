@@ -12,7 +12,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 
-class ReportingEngineTest {
+class EventHighlighterTest {
 
     // -------------------------------------------------------------------------
     // MATCH LIFECYCLE

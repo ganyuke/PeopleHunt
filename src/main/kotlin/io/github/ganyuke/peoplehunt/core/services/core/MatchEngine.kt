@@ -178,6 +178,9 @@ class MatchEngine(
     }
 
     fun shutdown() {
+        if (currentStatus is MatchState.Active) {
+            endMatch(currentStatus as MatchState.Active, MatchOutcome.INCONCLUSIVE)
+        }
         fullReset()
         matchIntervalService.shutdown()
     }
@@ -192,7 +195,7 @@ class MatchEngine(
         }
     }
 
-    fun setRunner(player: MatchPlayer) = guardMutation { idleState ->
+    override fun setRunner(player: MatchPlayer) = guardMutation { idleState ->
         // success: overriding existing runner / no runner
         // failure: candidate already runner / hunter
         if (idleState.runner isReally player) return@guardMutation MatchResult.Err(MatchFailureReason.PLAYER_ALREADY_RUNNER)
@@ -202,7 +205,7 @@ class MatchEngine(
         MatchResult.Ok("Set ${player.name} as the runner")
     }
 
-    fun removeRunner(player: MatchPlayer) = guardMutation { idleState ->
+    override fun removeRunner(player: MatchPlayer) = guardMutation { idleState ->
         // success: removing current runner
         // failure: candidate not runner
         if (idleState.runner isNotReally player) return@guardMutation MatchResult.Err(MatchFailureReason.PLAYER_NOT_IN_GROUP)
@@ -211,13 +214,13 @@ class MatchEngine(
         MatchResult.Ok("Removed ${player.name} as the runner")
     }
 
-    fun clearRunner(): MatchResult = guardMutation { idleState ->
+    override fun clearRunner(): MatchResult = guardMutation { idleState ->
         // unconditionally clear runner
         currentStatus = idleState.copy(runner = null)
         MatchResult.Ok("Cleared the runner")
     }
 
-    fun addHunter(player: MatchPlayer) = guardMutation { idleState ->
+    override fun addHunter(player: MatchPlayer) = guardMutation { idleState ->
         // success: adding candidate hunter
         // failure: candidate already hunter
         if (idleState.runner isReally player) return@guardMutation MatchResult.Err(MatchFailureReason.PLAYER_ALREADY_HUNTER)
@@ -226,7 +229,7 @@ class MatchEngine(
         MatchResult.Ok("Added ${player.name} as a hunter")
     }
 
-    fun removeHunter(player: MatchPlayer): MatchResult = guardMutation { idleState ->
+    override fun removeHunter(player: MatchPlayer): MatchResult = guardMutation { idleState ->
         // success: removing candidate hunter
         // failure: candidate not a hunter
         if (!(idleState.hunters reallyContains player)) return@guardMutation MatchResult.Err(MatchFailureReason.PLAYER_NOT_IN_GROUP)
@@ -235,7 +238,7 @@ class MatchEngine(
         MatchResult.Ok("Removed ${player.name} as a hunter")
     }
 
-    fun clearHunters() = guardMutation { idleState ->
+    override fun clearHunters() = guardMutation { idleState ->
         // unconditionally clear hunters
         val originalSize = idleState.hunters.size
         currentStatus = idleState.copy(hunters = emptySet())

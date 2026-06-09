@@ -1,4 +1,4 @@
-package io.github.ganyuke.peoplehunt.core.services.reporting
+package io.github.ganyuke.peoplehunt.core.services.reporting.highlighter
 
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import kotlin.uuid.Uuid

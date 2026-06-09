@@ -1,6 +1,5 @@
 package io.github.ganyuke.peoplehunt.core.events
 
-import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import io.github.ganyuke.peoplehunt.core.events.models.Pos4
 import io.github.ganyuke.peoplehunt.core.services.core.models.MatchState
 import kotlin.uuid.Uuid

@@ -3,24 +3,13 @@ package io.github.ganyuke.peoplehunt.core.services.reporting.persistence.sqlite
 import io.github.ganyuke.peoplehunt.core.events.models.MatchPlayer
 import io.github.ganyuke.peoplehunt.core.services.core.models.MatchOutcome
 import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.EventFrame
+import io.github.ganyuke.peoplehunt.core.services.reporting.persistence.models.PersistedMatchReport
+import io.github.ganyuke.peoplehunt.core.utils.fromCompactString
 import kotlinx.serialization.json.Json
 import java.nio.file.Path
 import java.sql.DriverManager
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
-
-data class PersistedMatchReport(
-    val matchId: Uuid,
-    val startedAt: Instant,
-    val endedAt: Instant?,
-    val durationTicks: Int?,
-    val outcome: MatchOutcome?,
-    val runner: MatchPlayer,
-    val hunters: List<MatchPlayer>,
-    val snapshotFrames: List<EventFrame>,
-    val projectileFrames: List<EventFrame>,
-    val eventFrames: List<EventFrame>,
-)
 
 object SqliteReportReader {
     fun read(dbPath: Path, json: Json): PersistedMatchReport {
